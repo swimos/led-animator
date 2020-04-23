@@ -1,0 +1,183 @@
+.compass {
+  width: 200px;
+  height: 200px;
+  padding: 0px;
+}
+
+.compassCircle {
+  width: 95%;
+  height: 95%;
+  border-radius: 50%;
+  border: 1px solid white;
+  color: white;
+  text-align: center;
+  padding: 0px;
+  transition: all 0.1s linear;
+  font-size: 42px;
+  box-shadow: 0 0 1px 0px rgba(255, 255, 255, 0.5) inset, 0 0 1px 0px rgba(255, 255, 255, 0.5);
+  background-color: rgba(100, 100, 255, 0.5);
+}
+
+.compassLabel {
+  position: absolute;
+  top: 47%;
+  left: 48%;
+  transform: translateX(-50%) translateY(-50%);
+  text-align: center;
+}
+
+.carOverhead {
+  position: relative;
+  width: 170px;
+  height: 270px;
+  margin: 0px auto;
+}
+
+.carWheels {
+  border: solid 1px;
+  border-color: red;
+  width: 25px;
+  height: 55px;
+  position: absolute;
+  transition: all 0.1s linear;
+}
+
+.carFrame {
+  border: solid 1px blue;
+}
+
+#frontAxle,
+#backAxle {
+  position: absolute;
+  width: 122px;
+  height: 10px;
+  left: 22px;
+}
+
+#frontAxle {
+  top: 32px;
+}
+
+#backAxle {
+  top: 222px;
+}
+
+#centerAxle {
+  position: absolute;
+  width: 10px;
+  height: 200px;
+  left: 77px;
+  top: 32px;
+}
+
+#leftFrontWheel {
+  top: 10px;
+  left: 10px;
+}
+
+#rightFrontWheel {
+  top: 10px;
+  right: 10px;
+}
+
+#leftBackWheel {
+  bottom: 10px;
+  left: 10px;
+}
+
+#rightBackWheel {
+  right: 10px;
+  bottom: 10px;
+}
+
+.instPanel {
+  margin: 20px;
+  border-radius: 27px;
+  display: inline-block;
+  overflow: hidden;
+  background: linear-gradient(to bottom, rgba(184, 225, 252, 0.72) 0%, rgba(169, 210, 243, 0.72) 10%, rgba(144, 186, 228, 1) 25%, rgba(144, 188, 234, 1) 37%, rgba(144, 191, 240, 1) 50%, rgba(107, 168, 229, 1) 51%, rgba(162, 218, 245, 1) 83%, rgba(189, 243, 253, 1) 100%);
+}
+
+.instPanel h1 {
+  font-size: 18px;
+  padding: 10px 20px;
+  font-family: 'Alegreya Sans SC', sans-serif;
+  letter-spacing: 0.7px;
+}
+
+.instRow {
+  display: flex;
+  position: relative;
+  margin: 10px 10px 20px 10px;
+}
+
+.thermWrapper {
+  display: flex;
+  position: relative;
+  width: 90px;
+}
+
+.titleLabel {
+  position: absolute;
+  left: 0px;
+  writing-mode: tb-rl;
+  border-bottom: solid 1px;
+  border-left: solid 1px;
+  border-top: solid 1px;
+  box-shadow: 0 0 1px 0px rgba(255, 255, 255, 0.5) inset, 0 0 1px 0px rgba(255, 255, 255, 0.5);
+  padding: 8px 2px 25px 5px;
+  border-radius: 25px 0 0 45px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.7px;
+  background-color: rgba(27, 27, 27, 0.27);
+}
+
+.thermOutside {
+  position: absolute;
+  left: 32px;
+  width: 45px;
+  height: 200px;
+  border: solid 1px white;
+  box-shadow: 0 0 6px 0px rgba(0, 0, 0, 0.5) inset, 0 0 1px 0px rgba(255, 255, 255, 0.5);
+  border-radius: 0 7px 7px 7px;
+  position: relative;
+  background-color: rgba(200, 200, 200, 0.72);
+  margin-right: 5px;
+  overflow: hidden;
+}
+
+.thermInside {
+  width: 100%;
+  height: 50%;
+  position: absolute;
+  bottom: 0px;
+  border-radius: 0 0 7px 7px;
+  box-shadow: inset 0px 0 15px rgba(0, 0, 0, 0.27);
+  transition: all 0ms linear;
+  background: rgba(27, 27, 127, 0.7);
+}
+
+.thermInside label {
+  position: absolute;
+  margin: 3px auto;
+  color: white;
+  font-size: 10px;
+  text-align: center;
+  width: 100%;
+  font-family: 'Droid Sans Mono', monospace;
+  text-shadow: 0px 0px 3px black;
+}
+
+.videoWrapper {
+  width: 200px;
+  height: 200px;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}

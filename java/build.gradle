@@ -1,0 +1,113 @@
+import java.util.regex.Matcher
+
+buildscript {
+  repositories {
+    maven { url 'https://plugins.gradle.org/m2/' }
+  }
+}
+
+plugins {
+  id "java"
+  id "java-library"
+  id "application"
+  id "nebula.ospackage-application" version "8.0.3"
+  id "idea"
+}
+
+idea.module.outputDir file("out/production/classes")
+
+group = 'ai.swim'
+description = 'LED Panel Manager'
+ext.moduleName = 'swim.ledpanel'
+sourceCompatibility = 1.9
+ext.swimVersion = project.property('swim.version')
+version = project.property('app.version')
+mainClassName = 'swim.ledpanel.ApplicationPlane'
+
+//def moduleName = 'swim.ledpanel'
+def jvmVersion = 9 //System.getProperty('java.version').split('\\.')[0] as Integer
+def useModules = jvmVersion >= 9 && !project.hasProperty('no-modules')
+
+repositories {
+  mavenCentral()
+  maven {
+    url "https://swimos.bintray.com/maven/"
+  }
+
+}
+
+dependencies {
+  api group: 'org.swimos', name: 'swim-api', version: swimVersion
+  implementation group: 'org.swimos', name: 'swim-server', version: swimVersion
+}
+
+// dependencies {
+//   compile fileTree(dir: 'lib', include: '*.jar')
+// }
+
+afterEvaluate {
+  compileJava {
+    if (useModules) {
+      doFirst {
+        options.compilerArgs += [
+          '--module-path', classpath.asPath,
+        ]
+        classpath = files()
+      }
+    }
+    options.compilerArgs += ['-Xlint:all,-requires-automatic']
+    options.encoding = 'UTF-8'
+  }
+
+  jar {
+    inputs.property('moduleName', moduleName)
+    manifest {
+      attributes(
+        'Implementation-Title': moduleName,
+        'Implementation-Version': version,
+        'Main-Class': mainClassName)
+    }
+  }
+
+  tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    if (!useModules) {
+      exclude '*module-info*'
+    }
+  }
+
+  run {
+    dependsOn jar
+    doFirst {
+      jvmArgs += [
+        '--module-path', files(configurations.runtimeClasspath, jar.archiveFile).asPath,
+        '--module', "${moduleName}/${mainClassName}"
+      ]
+      classpath = files()
+    }
+  }
+
+  startScripts {
+    inputs.property("moduleName", moduleName)
+    doFirst {
+      classpath = files()
+      defaultJvmOpts = [
+        '-Dswim.config=/server.recon',
+        '-Xms3g',
+        '-Xmx3g',
+        '--module-path', 'APP_HOME_LIBS',
+        '--module', "${moduleName}/${mainClassName}"
+      ]
+    }
+    doLast {
+      def bashFile = new File(outputDir, applicationName)
+      String bashContent = bashFile.text
+      bashFile.text = bashContent.replaceFirst('APP_HOME_LIBS', Matcher.quoteReplacement('$APP_HOME/lib'))
+
+      def batFile = new File(outputDir, applicationName + ".bat")
+      String batContent = batFile.text
+      batFile.text = batContent.replaceFirst('APP_HOME_LIBS', Matcher.quoteReplacement('%APP_HOME%\\lib'))
+    }
+  }
+
+}

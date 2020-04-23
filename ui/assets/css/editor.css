@@ -1,0 +1,395 @@
+html,
+body,
+#page {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(27, 27, 27);
+  padding: 0px;
+  margin: 0px;
+  overflow: hidden;
+  position: relative;
+}
+
+.main {
+  position: absolute;
+  top: 64px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+}
+
+.main-header {
+  position: relative;
+  z-index: 10;
+  height: 64px;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+  color: #fff;
+  width: 100%;
+  background-color: black;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-family: "Open Sans", sans-serif;
+  overflow: hidden;  
+}
+.main-header .main-title {
+  display: flex;
+}
+.main-header .row {
+  height: 100%;
+  flex-grow: 1;
+}
+.main-header .content-left,
+.main-header .content-right {
+  display: flex;
+}
+.main-header .content-left a,
+.main-header .content-left picture,
+.main-header .content-right a,
+.main-header .content-right picture {
+  display: flex;
+  height: 100%;
+  align-items: center;
+}
+.main-header .btn-plant-back {
+  margin-right: 10px;
+}
+.main-header .content-right {
+  margin-top: 15px;
+  margin-bottom: 12px;
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+.main-header .content-right picture {
+  padding-left: 15px;
+}
+.main-header h1 {
+  align-self: center;
+  font-size: 20px;
+  margin: 0 0 0 15px;
+  font-weight: normal;
+  letter-spacing: 1px;
+}
+.main-header .timer {
+  align-self: flex-end;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+#header {
+  position: relative;
+}
+
+#content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+#leftColumn,
+#rightColumn {
+  background-color: rgb(53, 53, 53);
+  margin: 0px;
+  padding: 0px;
+  border-right: solid 1px rgb(38, 38, 38);
+  display: flex;
+  flex-direction: column;
+  flex-flow: column;
+  flex-grow: 0;
+  font-size: 12px;
+  font-family: Lato, "Open Sans", sans-serif;
+  color: white;
+  margin: 0px;
+}
+
+#layoutElementListContainer {
+  height: calc(100% - 4px);
+}
+
+#leftColumn form,
+#rightColumn form {
+  /* padding: 0px 12px;
+  margin-bottom: 18px; */
+}
+
+#leftColumn h3,
+#rightColumn h3 {
+  margin: 0px;
+  padding: 4px 0px 4px 8px;
+  background-color: rgb(42, 42, 42);
+  border-top: solid 1px rgba(0, 0, 0, 0.8);
+  border-bottom: solid 1px rgba(255, 255, 255, 0.4);
+  position: relative;
+  font-size: 15px;
+}
+
+#rightColumn {
+  overflow: auto;
+}
+
+#rightColumn h3 {
+  margin: 0px;
+}
+
+.addElementButton-old {
+  width: 28px;
+  height: 28px;
+  position: absolute;
+  right: 3px;
+  top: 5px;
+  text-align: center;
+  border-radius: 50%;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.3);
+  line-height: 28px;
+  border: solid 1px rgba(255, 255, 255, 0.8);
+}
+
+.addElementButton {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  right: 0px;
+  top: 2px;
+  cursor: pointer;
+  background-color: rgba(255,255,255,0.3);
+  text-align: center;
+  line-height: 20px;
+  border: solid 1px rgba(255,255,255,0.8);  
+}
+
+.addElementButton:hover {
+  background-color: rgba(0, 255, 0, 0.8);
+}
+
+.removeElementButton {
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  text-align: center;
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.3);
+  line-height: 14px;
+  border: solid 1px rgba(255, 255, 255, 0.8);
+  display: none;
+  border-radius: 50%;
+}
+
+.removeElementButton:hover {
+  background-color: rgba(255, 0, 0, 0.8);
+}
+
+.rowKey .removeElementButton {
+  right: auto;
+  left: 5px;
+  top: 6px;
+}
+
+#workspace {
+  margin: 32px;
+  background-color: rgba(255,255,255,0.05);
+  box-shadow: 0px 0px 10px 2px rgba(10, 10, 10, 0.4);
+  flex-grow: 1;
+  position: relative;
+  color: black;
+  overflow: hidden;
+}
+
+#leftColumn input,
+#rightColumn input,
+#leftColumn select,
+#rightColumn select,
+#leftColumn select option,
+#rightColumn select option {
+  margin: 3px 0px 10px 0px;
+  background-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+  border: solid 1px rgba(255, 255, 255, 0.8);
+  color: white;
+  font-size: 14px;
+  width: 95%;
+  padding: 3px;
+  border-radius: 3px;
+}
+
+#leftColumn select option,
+#rightColumn select option {
+  background: black;
+  border: 0px;
+}
+
+#layoutElementListContainer .selected {
+  background-color: rgba(110, 120, 255, 0.3);
+}
+
+#layoutElementListContainer div {
+  padding: 0 0 0 4px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  position: relative;
+  font-size: 14px;
+  line-height: 17px;
+}
+
+#layoutElementListContainer p {
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+#layoutElementListContainer p:hover,
+#layoutElementListContainer div:hover {
+  background-color: rgba(110, 120, 255, 0.5);
+}
+
+#layoutElementListContainer p:hover .removeElementButton,
+#layoutElementListContainer div:hover .removeElementButton,
+.rowKey:hover .removeElementButton {
+  display: inline-block;
+}
+
+#attributePanel {
+  width: 350px;
+  border-bottom: solid 1px rgba(255, 255, 255, 0.4);
+}
+
+.attributesContainer {
+  overflow: auto;
+  /* height: calc(100% - 29px); */
+}
+
+#attributePanel .attributeRow {
+  width: 100%;
+}
+
+#attributePanel .attributeRow .rowKey {
+  width: 30%;
+  background-color: rgba(42, 42, 42, 0.7);
+  padding: 5px;
+  text-align: right;
+  border-right: solid 1px rgba(255, 255, 255, 0.4);
+  position: relative;
+}
+
+#attributePanel .attributeRow .rowValue {
+  width: 70%;
+  padding: 5px;
+  cursor: pointer;
+}
+
+#attributePanel .attributeRow .rowValue:hover {
+  color: white;
+}
+
+#modal {
+  width: 640px;
+  position: absolute;
+  left: calc(50% - 320px);
+  top: calc(50% - 240px);
+  box-shadow: 0px 0px 24px 2px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  display: none;
+  font-family: Lato, "Open Sans", sans-serif;
+  margin: 0px;
+  padding: 0px;
+  border-radius: 5px;
+  overflow: hidden;
+  color: black;
+  backdrop-filter: blur(10px) saturate(10%);
+}
+/* Style The Dropdown Button */
+
+#modal h3 {
+  margin: 0px 0px 10px 0px;
+  padding: 5px 0px;
+  background-color: rgba(0,0,0,0.2);
+  text-align: center;
+}
+
+.modalTextInput {
+  font-size: 16px;
+  background-color: rgba(155,155,155,0.4);
+  border: solid 1px rgba(45,45,45,0.4);
+  padding-left: 5px;
+}
+
+.dropbtn {
+  background-color: transparent;
+  color: white;
+  padding: 0px 16px;
+  height: 100%;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+/* The container <div> - needed to position the dropdown content */
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+/* Dropdown Content (Hidden by Default) */
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #6a6a6a;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  font-family: Lato, "Open Sans", sans-serif;
+}
+/* Links inside the dropdown */
+
+.dropdown-content a {
+  color: white;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  white-space: nowrap;
+}
+/* Change color of dropdown links on hover */
+
+.dropdown-content a:hover {
+  background-color: rgba(53, 53, 53, 1);
+}
+/* Show the dropdown menu on hover */
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+/* Change the background color of the dropdown button when the dropdown content is shown */
+
+.dropdown:hover .dropbtn {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.editorDialogButton {
+  font-size: 20px;
+  margin: 10px;
+  padding: 10px 0;
+  border: 0;
+  color: white;
+  border-radius: 5px;
+  background-color: rgb(43,43,53);
+}
+
+.editorDialogButton:hover {
+  background-color: rgb(73,73,83);
+}
+
+.loadLayoutFileRow {
+  padding: 2px 10px;
+}
+
+.loadLayoutFileRow:hover {
+  background-color: rgba(0,0,0,0.3);
+}

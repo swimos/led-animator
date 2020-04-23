@@ -1,0 +1,24 @@
+ledpanel: @fabric {
+  @plane(class: "swim.ledpanel.ApplicationPlane")
+
+
+  @node {
+    pattern: "/animationService"
+    @agent(class: "swim.ledpanel.agents.AnimationService")
+  }  
+
+  @node {
+    pattern: "/ledPanel/:panelId"
+    @agent(class: "swim.ledpanel.agents.LedPanelState")
+  }  
+
+}
+
+@web(port: 9001) {
+  space: "ledpanel"
+  documentRoot: "../ui/"
+  @websocket {
+    serverCompressionLevel: 0# -1 = default; 0 = off; 1-9 = deflate level
+    clientCompressionLevel: 0# -1 = default; 0 = off; 1-9 = deflate level
+  }
+}

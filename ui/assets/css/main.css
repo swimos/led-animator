@@ -1,0 +1,362 @@
+* {
+  padding: 0px;
+  margin: 0px;
+}
+
+html, body {
+  background-color: #1a1a1a;
+  color: white;
+  font-size: 16pt;
+  font-family: "Open Sans", sans-serif;
+  height: 100%;
+}
+
+h3 {
+  background-color: #00a6ed;
+  padding: 5px 10px;
+  font-size: 20px;
+  margin-bottom: 0px; 
+  border-radius: 5px 5px 0px 0px;
+  font-family: Orbitron;
+}
+
+h4 {
+  background-color: rgba(255,255,255,0.2);
+  padding: 5px 10px;
+  font-size: 18px;
+  margin-bottom: 0px; 
+}
+
+.main {
+  width: 950px;
+  margin: 10px auto 50px auto;
+}
+
+input,
+select {
+  background-color: transparent;
+  border: 0px;
+  padding: 3px 10px;
+  margin: 0px;
+}
+
+select, input[type="text"] {
+  border-radius: 8px;
+  box-shadow: 0px 0px 3px inset rgba(255,255,255,0.4);
+  border: 0px;
+  transition: 100ms linear;
+}
+
+select:hover {
+  border: 0px;
+  background-color: rgba(255,255,255,0.5);
+}
+
+select:focus {
+  outline: none;
+}
+
+input[type="button"] {
+  background-color: rgba(255,255,255,0.3);
+  transition: all 150ms linear;
+  font-size: 1rem;
+  color: ghostwhite;
+  border-radius: 5px;
+  border: solid 1px rgba(0,0,0,0.7);
+}
+
+input[type="button"]:hover {
+  background-color: dodgerblue;
+}
+
+
+input[type=range] {
+  height: 18px;
+  padding: 0px;
+  -webkit-appearance: none;
+  margin: 5px;
+  box-shadow: none;
+
+}
+input[type=range]:focus {
+  outline: none;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 20px;
+  cursor: pointer;
+  box-shadow: 0px 0px 3px inset rgba(255,255,255,0.5);
+  background: transparent;
+  border-radius: 5px;
+  border: 0px solid #000000;
+  transition: 150ms linear;
+}
+input[type=range]::-webkit-slider-thumb {
+  box-shadow: 0px 0px 3px inset rgba(255,255,255,0.2);
+  border: 0px solid #000000;
+  height: 20px;
+  width: 20px;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  transition: 150ms linear;
+}
+input[type=range]:hover::-webkit-slider-runnable-track {
+  background: rgba(0,0,0,0.2);
+}
+
+input[type=range]:focus::-webkit-slider-runnable-track {
+  background: rgba(0,0,0,0.5);
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  background: rgba(175,175,255,0.75);
+  box-shadow: 0px 0px 3px inset rgba(255,255,255,0.2);
+}
+input[type=range]:hover::-webkit-slider-thumb {
+  box-shadow: 0px 0px 3px inset rgba(255,255,255,0.5);
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;  
+}
+
+.statusHeader {
+  padding: 8px;
+}
+
+.gridPanel {
+  display: grid;
+  grid-template-columns: 450px auto;
+  min-height: 300px;
+  grid-gap: 10px;
+}
+
+.cellPanel {
+  background-color: #26282a;
+  border-radius: 5px;
+  padding-bottom: 10px;  
+}
+
+.cellGrid {
+  display: grid;
+  grid-template-columns: 30% 20% 30% 20%;
+  margin: 0px;
+}
+
+.cellGrid div:nth-child(odd) {
+  background-color: rgba(255,255,255,0.05);
+  text-align: right;
+  padding-right: 5px;
+}
+
+.cellGrid div:nth-child(even) {
+  padding-left: 5px;
+  font-weight: bolder;
+}
+
+.cellGrid2 {
+  display: grid;
+  grid-template-columns: 40% 60%;
+  margin: 0px;
+}
+
+.cellGrid2 div:nth-child(odd) {
+  text-align: right;
+  padding-right: 5px;
+  line-height: 35px;
+}
+
+.cellGrid3 {
+  display: flex;
+  flex-direction: row;
+}
+
+.ledControlRow {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  grid-gap: 10px;
+}
+
+.infoRow {
+  display: flex;
+  flex-direction: row;
+  font-size: 16px;
+  background-color: silver;
+  color: black;
+}
+
+.infoRow div{
+  flex-grow: 1;
+  margin: 0px 10px;
+}
+
+.infoRow input[type="text"] {
+  border-radius: 0px;
+  box-shadow: none;
+  font-size: 16px;
+  margin: 0px;
+  padding: 0px;
+  text-align: center;
+  color: black;
+}
+
+#pixelGrid {
+  width: calc(13px * 32);
+  height: calc(13px * 32);
+  margin: 5px auto;
+  user-select: none;
+}
+
+#pixelGrid div {
+  width: 13px;
+  height: 13px;
+  flex-grow: 0;
+  margin: 0px;
+  z-index: initial;
+}
+
+#pixelGrid div:hover {
+  box-shadow: 0px 0px 0px 1px rgba(0,0,0,0.25);
+  z-index: 10;
+}
+
+.selected {
+  background-color: rgba(255,0,0,0.2);
+}
+
+#framesPanel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+#framesContainer {
+  height: 95px;
+  border: solid 1px rgba(255,255,255,0.2);
+  display: flex;
+  flex-direction: row;
+  overflow-x: scroll;
+  overflow-y: hidden;
+}
+
+.frame {
+  width: 25px;
+  height: 72px;
+  flex-grow: 0;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  line-height: 18px;
+  font-size: 18px;
+}
+
+.frame:hover {
+  background-color: rgba(255,245,10,0.2);
+}
+
+.frameBox {
+  border: solid 1px rgba(255,255,255,0.5);
+  flex-grow: 1;
+  height: 60px;
+  margin: 2px;
+}
+
+.marker {
+  height: 18px;
+  border-bottom: solid 1px rgba(255,255,255,0.4);
+}
+
+.palletteRow {
+  display: flex;
+  flex-direction: row;
+}
+
+#colorPallette {
+  margin: 5px;
+  width: 360px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  flex-grow: 1;
+}
+
+#activePallette {
+  margin: 5px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  flex-grow: 1;
+}
+
+#activePalletteContainer {
+  width: calc(100% - 360px);
+  margin: 0px;
+}
+
+#colorPallette div, #activePallette div  {
+  width: 20px;
+  height: 20px;
+  flex-grow: 0;
+  margin: 0px;
+  z-index: initial;
+}
+
+#colorPallette div:hover, #activePallette div:hover  {
+  box-shadow: 0px 0px 5px 1px green;
+  z-index: 10;
+}
+
+.colorRow {
+  display: flex;
+  flex-direction: row;
+  margin: 5px;
+}
+
+.colorSelectors {
+  display: grid;
+  grid-template-columns: 15px 70px auto;
+  width: calc(100% - 75px);
+  font-size: 18px;
+  line-height: 28px;
+  margin: 0px 5px;
+  text-align: center;
+}
+
+.colorSelectors input {
+  font-size: 18px;
+  line-height: 18px;
+}
+
+
+
+.activeColors {
+  width: 75px;
+  background-color: silver;
+  position: relative;
+}
+
+#backgroundColorChip, #foregroundColorChip {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  box-shadow: 0px 0px 1px 0px rgb(0,0,0);
+}
+
+#foregroundColorChip {
+  top: 10px;
+  left: 10px
+}
+
+#backgroundColorChip {
+  top: 25px;
+  left: 25px;
+  background-color: black;
+}
