@@ -12,6 +12,17 @@ public class AnimationService extends AbstractAgent {
     @SwimLane("animationsList")
     MapLane<String, Value> animationsList = this.<String, Value>mapLane();
   
+    @SwimLane("panels")
+    MapLane<String, Value> panels = this.<String, Value>mapLane();
+
+    @SwimLane("addPanel")
+    CommandLane<Value> addPanelCommand = this.<Value>commandLane().onCommand(panel -> {
+      String panelName = panel.get("id").stringValue("none");
+      if (panelName != "none") {
+        panels.put(panelName, panel);
+      }  
+    });
+
     @SwimLane("saveAnimation")
     CommandLane<Value> saveAnimationCommand = this.<Value>commandLane().onCommand(anim -> {
       String animName = anim.get("id").stringValue("none");

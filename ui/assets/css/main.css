@@ -360,3 +360,12 @@ canvas {
   left: 25px;
   background-color: black;
 }
+
+.panelRow:hover {
+  background-color: rgba(255,255,255,0.2);
+}
+
+.selectedPanel, .selectedPanel:hover {
+  background-color: rgba(255,50,50,0.2);
+}
+

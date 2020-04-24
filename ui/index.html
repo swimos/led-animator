@@ -90,6 +90,19 @@
 					</div>
 
 				</div>
+				<div class="cellPanel" style="padding-top: 10px;">
+					<h3>File Menu?:</h3>
+					<select id="animationList"></select>
+					<input type="button" value="Load Anim" onclick="page.loadAnimation()">
+					<input type="button" value="New Anim" onclick="page.newAnimation()">
+					<input type="button" value="Save Anim" onclick="page.saveAnimation()">
+
+					<hr>
+					<h4>Import Piskel File</h4>
+					<input type="file" id="piskelImportButton">
+					<hr>
+
+				</div>				
 			</div>
 
 
@@ -136,32 +149,27 @@
 					</div>
 				</div>
 				<div class="cellPanel" style="margin-top: 10px;">
+					<h3>LED Panels</h3>
+					<div class="cellGrid8" id="mainPanelList">
+
+					</div>
+				</div>
+
+				<div class="cellPanel" style="margin-top: 10px;">
 					<h3>LED Panel Controls</h3>
-					<div class="cellGrid3">
-						Width: <input type="text" maxlength="3" size="2" value="32">
-						Height: <input type="text" maxlength="3" size="2" value="32">
-
-						<input type="button" value="Play on panel" onclick="page.playAnimationOnPanel()">
-						<input type="button" value="Show Current" onclick="page.showLedPixels()" disabled>
-
+					<div class="cellGrid8">
+						<input type="button" value="Push Preview to panel" onclick="page.pushAnimationToPanel()">
+						<input type="button" value="Sync Panel w/Preview" onclick="page.syncPanelToPreview()">
+						<br>
+						<input type="button" value="Play Animation" onclick="page.playAnimationOnPanel()">
+						<input type="button" value="Stop Animation" onclick="page.stopAnimationOnPanel()">
+						
 					</div>
 				</div>				
 			</div>
 
 			<div class="gridCell">
-				<div class="cellPanel">
-					<h4>File Menu?:</h4>
-					<select id="animationList"></select>
-					<input type="button" value="Load Anim" onclick="page.loadAnimation()">
-					<input type="button" value="New Anim" onclick="page.newAnimation()">
-					<input type="button" value="Save Anim" onclick="page.saveAnimation()">
 
-					<hr>
-					<h4>Import Piskel File</h4>
-					<input type="file" id="piskelImportButton">
-					<hr>
-
-				</div>
 			</div>
 
 			<div class="gridCell">

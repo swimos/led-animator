@@ -6,7 +6,7 @@ App to drive animations on one or more commercial LED matrix display panels. Swi
 Notes:
 * node drives led panel based on panel state in swim
 * ui served by swim
-* currently only supports one panel at 32x32
+* currently only supports panels at 32x32 pixels
 * app can run without panel, just dont run node.
 * both swim app and node need to be running to drive a panel
 * app uses open source version of swim (3.10.2)
@@ -24,4 +24,4 @@ Run Swim App (panel state manager + web ui):
 
 Run Node (hardware bridge):
 * cd node
-* npm start
+* sudo npm start
