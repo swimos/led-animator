@@ -200,14 +200,14 @@ class Main {
     mainLoop() {
         if(this.lastFrame != this.currentFrame || this.ledCommand === "sync") {
 
-            if(this.pixelsDirty) {
+            // if(this.pixelsDirty) {
                 this.drawCurrentPixelIndexes();
                 this.pixelsDirty = false;
-            }
-            if(this.matrixDirty) {
+            // }
+            // if(this.matrixDirty) {
                 this.matrix.update();
                 this.matrixDirty = false;
-            }
+            // }
             this.lastFrame = this.currentFrame;
         }
         setTimeout(this.mainLoop.bind(this),1);

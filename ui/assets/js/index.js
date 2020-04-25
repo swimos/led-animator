@@ -14,7 +14,7 @@ class LedMatrixPage {
   selectedPixelDiv = null;
   selectedFrame = 0;
   fastTween = swim.Transition.duration(100);
-  currentPanelId = 1;
+  currentPanelId = null;
   pixelGrid = null;
   gridOffsetX = null;
   gridOffsetY = null;
@@ -36,8 +36,8 @@ class LedMatrixPage {
 
   panelList = [];
   panelInfo = null;
-  panelWidth = 0;
-  panelHeight = 0;
+  panelWidth = 32;
+  panelHeight = 32;
 
   framesDiv = null;
   frameDivCache = [];
@@ -84,6 +84,20 @@ class LedMatrixPage {
     this.links["panels"] = swim.nodeRef(this.swimUrl, '/animationService').downlinkMap().laneUri('panels')
       .didUpdate((key, value) => {
         this.panelList[key.stringValue()] = value.toObject();
+        if(this.currentPanelId === null) {
+          this.currentPanelId = key.stringValue();
+          this.links["panelInfo"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('info')
+          .didSet(((newValue) => {
+            if(newValue.isDefined()) {
+              this.panelInfo = newValue.toObject();
+              this.panelWidth = this.panelInfo.width;
+              this.panelHeight = this.panelInfo.height;
+          
+            }
+    
+          }).bind(this))
+          .open();          
+        }
         this.updateNewPanelList();
       })
       .didRemove((key) => {
@@ -102,13 +116,7 @@ class LedMatrixPage {
         this.ledCommand = newValue.stringValue("stop");
       });
 
-    this.links["panelInfo"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('info')
-      .didSet((newValue) => {
-        this.panelInfo = newValue.toObject();
-        this.panelWidth = this.panelInfo.width;
-        this.panelHeight = this.panelInfo.height;
 
-      });
 
     window.requestAnimationFrame(() => {
       this.start();
@@ -197,7 +205,7 @@ class LedMatrixPage {
   }
 
   drawPixels() {
-    if(!this.ledPixels || this.panelWidth == 0 || this.panelHeight == 0) {
+    if(!this.ledPixels || this.panelWidth == 0 || this.panelHeight == 0 || Object.keys(this.animationsList).length === 0) {
       return false;
     }
     // const pixelArr = JSON.parse(this.ledPixels);
@@ -431,7 +439,6 @@ class LedMatrixPage {
     this.selectFrame(this.animationsList[this.selectedAnimation].frames2.length - 1);
     this.drawFramesListElements();
 
-    console.info();
   }
 
   
@@ -668,7 +675,10 @@ class LedMatrixPage {
 
       this.panelLinks[`animName-${panelKey}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${panelKey}`).downlinkValue().laneUri('activeAnimation')
         .didSet((newValue) => {
-          animNameDiv.innerText = `Animation: ${newValue.get("name").toString()}`;
+          if(newValue.isDefined()) {
+            animNameDiv.innerText = `Animation: ${newValue.get("name").toString()}`;
+          }
+          
         })
         
       const commandDiv = document.createElement("div");
