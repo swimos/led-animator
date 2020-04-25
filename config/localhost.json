@@ -1,0 +1,16 @@
+{
+    "appName": "Swim LED Animator",
+    "animationSaveFolder": "../animations",
+    "csvFiles": {
+        "agencies": {
+            "enabled": true,
+            "fileIn": "agencies.csv",
+            "fileOut": "agencies.csv",
+            "columns": "tag,title,region",
+            "simInterval": 0,
+            "simType": "none",
+            "writeToCsv": false,
+            "laneUri": "/bridge/airports"
+        }
+    }
+}

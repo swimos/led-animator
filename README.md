@@ -25,3 +25,7 @@ Run Swim App (panel state manager + web ui):
 Run Node (hardware bridge):
 * cd node
 * sudo npm start
+
+
+links
+https://github.com/easybotics/node-rpi-rgb-led-matrix

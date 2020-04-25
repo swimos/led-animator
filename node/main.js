@@ -2,16 +2,16 @@ console.info('[main] Loading libraries ...');
 
 const swimClient = require('@swim/client');
 const swim = require('@swim/core')
-var LedMatrix = require("easybotics-rpi-rgb-led-matrix");
+const LedMatrix = require("easybotics-rpi-rgb-led-matrix");
+const commandLineArgs = process.argv;
 
 class Main {
     constructor() {
-        this.hostUrl = "127.0.0.1";
-        this.swimPort = 9001;
-        this.swimUrl = 'ws://' + this.hostUrl + ':' + this.swimPort;
         this.showDebug = true;
         this.mainLoopInterval = 1;
         this.links = [];
+        this.args = {};
+        this.config = {};
 
         this.ledPixels = null;
         this.ledPixelIndexes = null;
@@ -28,32 +28,28 @@ class Main {
         this.activeAnimation = null;
         this.activeAnimationId = -1;
         this.ledCommand = null;
-        this.panelData = {
-            id: 1,
-            name: "Left Panel",
-            width: 32,
-            height: 32
-        }
-        
-    }
 
-    /**
-     * main initialization method. 
-     */
-    initialize() {
-        if (this.showDebug) {
-            console.info('[main] initialize');
+        this.processCommandLineArgs();
+        this.loadConfig(this.args.config || 'panel1');
+        this.swimPort = this.config.swimPort;
+        this.swimAddress = this.config.swimAddress;
+        this.swimUrl = 'ws://' + this.swimAddress + ':' + this.swimPort;
+        this.panelData = {
+            id: this.config.id,
+            name: this.config.name,
+            width: this.config.width,
+            height: this.config.height
         }
+
+        
     }
 
     start() {
         if (this.showDebug) {
-            console.info('[main] started');
+            console.info(`[main] started panel: ${this.config.name}`);
         }
-
-        this.selectedPanelId = this.panelData.id;
-        this.ledMessage = "";
         this.registerPanel();
+
         this.links["animList"] = swimClient.nodeRef(this.swimUrl, '/animationService').downlinkMap().laneUri('animationsList')
             .didUpdate((key, value) => {
                 this.animationsList[key.stringValue()] = value.toObject();
@@ -65,7 +61,7 @@ class Main {
                 // we may have reconnected so register panel to be sure.
                 this.registerPanel();
             })
-            .open();;
+            .open();
 
         this.links["ledCommand"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.selectedPanelId}`).downlinkValue().laneUri('ledCommand')
             .didSet((newValue) => {
@@ -80,11 +76,10 @@ class Main {
             })
             .open();         
 
+        // do not open now
         this.links["ledPixelIndexes"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.selectedPanelId}`).downlinkValue().laneUri('ledPixelIndexes')
             .didSet((newValue) => {
-                // console.info(newValue.isDefined());
                 if(newValue.isDefined()) {
-                    
                     this.ledPixelIndexes = JSON.parse(`[${newValue.toString()}]`);
                 }
             })
@@ -130,8 +125,7 @@ class Main {
             })
             .open();         
 
-        this.matrix = new LedMatrix(this.panelData.width,this.panelData.height,1,1,100,'adafruit-hat-pwm', 'RGB');
-        
+        this.matrix = new LedMatrix(this.panelData.width, this.panelData.height, this.config.chained, this.config.parallel, this.config.brightness, this.config.hardwareMapping, this.config.rgbSequence);
 
         // setInterval(() => {
             this.mainLoop();
@@ -140,6 +134,7 @@ class Main {
     }
 
     registerPanel() {
+        this.selectedPanelId = this.panelData.id;
         swimClient.command(this.swimUrl, `/ledPanel/${this.selectedPanelId}`, 'newPanel', this.panelData);
     }
 
@@ -170,22 +165,52 @@ class Main {
         this.matrixDirty = true;
     }
 
+
+
+    /**
+     * Load up configuration values from config file
+     * @param {*} configName 
+     */
+    loadConfig(configName) {
+        if (this.showDebug) {
+            console.info('[main] load config');
+        }
+        // load config
+        this.config = require('../config/' + configName + '.json');
+
+        if (this.showDebug) {
+            console.info('[main] config loaded');
+        }
+    }    
+
+
+    /**
+     * utility method to handle processing arguments from the command line
+     * arguments will be stored in this.args
+     */
+    processCommandLineArgs() {
+        commandLineArgs.forEach((val, index, arr) => {
+            if (val.indexOf('=') > 0) {
+                const rowValue = val.split('=');
+                this.args[rowValue[0]] = rowValue[1];
+            }
+        })
+    }    
     
     mainLoop() {
         if(this.lastFrame != this.currentFrame || this.ledCommand === "sync") {
 
-            // if(this.pixelsDirty) {
+            if(this.pixelsDirty) {
                 this.drawCurrentPixelIndexes();
-                // this.pixelsDirty = false;
-            // }
-            // if(this.matrixDirty) {
+                this.pixelsDirty = false;
+            }
+            if(this.matrixDirty) {
                 this.matrix.update();
                 this.matrixDirty = false;
-            // }
+            }
             this.lastFrame = this.currentFrame;
         }
-        setTimeout(this.mainLoop.bind(this),2);
-        // this.mainLoop();
+        setTimeout(this.mainLoop.bind(this),1);
     }
 
 }
