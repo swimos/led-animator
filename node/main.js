@@ -134,6 +134,9 @@ class Main {
             this.matrix = require("sense-hat-led");
         }
         
+        if(this.config.panelType === "matrixCreator") {
+            this.matrix = require("@matrix-io/matrix-lite");
+        }
 
         // setInterval(() => {
             this.mainLoop();
@@ -149,15 +152,24 @@ class Main {
     drawCurrentPixelIndexes() {
         let currX = 0;
         let currY = 0;
+        let everloop = new Array(this.matrix.led.length);
 
         //update based on swim led pixel state
         if(this.ledPixelIndexes) {
+
             for(let i=0; i<this.ledPixelIndexes.length; i++) {
                 const currPixel = this.ledPixelIndexes[i];
                 const pixelColor = this.pallette[currPixel];
 
                 if(pixelColor && this.matrix) {
-                    this.matrix.setPixel(currX, currY, pixelColor[0], pixelColor[1], pixelColor[2]);
+                    if(this.config.panelType === "matrixCreator") {
+                        if(i<this.matrix.led.length) {
+                            everloop[i] = `rgb(${pixelColor})`;
+                        }
+                    } else {
+                        this.matrix.setPixel(currX, currY, pixelColor[0], pixelColor[1], pixelColor[2]);
+                    }
+                    
                 }
     
                 if(i%this.config.width===(this.config.width-1)) {
@@ -168,7 +180,9 @@ class Main {
                 }
                 
             }
-    
+            if(this.config.panelType === "matrixCreator") {
+                this.matrix.led.set(everloop);
+            }    
         }
         this.matrixDirty = true;
     }

@@ -1,0 +1,9 @@
+{
+    "name": "Matrix Creator",
+    "id": "creator",
+    "width": 35,
+    "height": 1,
+    "swimAddress": "192.168.1.71",
+    "swimPort": "9001",
+    "panelType": "matrixCreator"
+}
