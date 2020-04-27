@@ -65,6 +65,7 @@ class Main {
 
         this.links["ledCommand"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.selectedPanelId}`).downlinkValue().laneUri('ledCommand')
             .didSet((newValue) => {
+                console.info(newValue)
                 if(newValue.toString) {
                     this.ledCommand = newValue.toString();
                 }
@@ -125,7 +126,14 @@ class Main {
             })
             .open();         
 
-        this.matrix = new LedMatrix(this.panelData.width, this.panelData.height, this.config.chained, this.config.parallel, this.config.brightness, this.config.hardwareMapping, this.config.rgbSequence);
+        if(this.config.panelType === "rpi-rgb-led-matrix") {
+            this.matrix = new LedMatrix(this.panelData.width, this.panelData.height, this.config.chained, this.config.parallel, this.config.brightness, this.config.hardwareMapping, this.config.rgbSequence);
+        }
+
+        if(this.config.panelType === "sensehat") {
+            this.matrix = require("sense-hat-led");
+        }
+        
 
         // setInterval(() => {
             this.mainLoop();
@@ -148,11 +156,11 @@ class Main {
                 const currPixel = this.ledPixelIndexes[i];
                 const pixelColor = this.pallette[currPixel];
 
-                if(pixelColor) {
+                if(pixelColor && this.matrix) {
                     this.matrix.setPixel(currX, currY, pixelColor[0], pixelColor[1], pixelColor[2]);
                 }
     
-                if(i%32===31) {
+                if(i%this.config.width===(this.config.width-1)) {
                     currY++;
                     currX = 0;
                 } else {
@@ -205,7 +213,10 @@ class Main {
                 this.pixelsDirty = false;
             // }
             // if(this.matrixDirty) {
-                this.matrix.update();
+                if(this.matrix && this.panelType === "rpi-rgb-led-matrix") {
+                    this.matrix.update();
+                }
+                
                 this.matrixDirty = false;
             // }
             this.lastFrame = this.currentFrame;

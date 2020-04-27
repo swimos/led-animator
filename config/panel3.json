@@ -1,0 +1,14 @@
+{
+    "name": "bot Panel",
+    "id": "bot",
+    "width": 8,
+    "height": 8,
+    "swimAddress": "192.168.1.71",
+    "swimPort": "9001",
+    "panelType": "sensehat",
+    "chained": 1,
+    "parallel": 1,
+    "brightness": 100,
+    "hardwareMapping": "adafruit-hat-pwm",
+    "rgbSequence": "RGB"
+}

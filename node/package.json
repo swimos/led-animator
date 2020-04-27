@@ -13,6 +13,7 @@
     "@swim/core": "^3.10.2",
     "bufferutil": "^4.0.1",
     "easybotics-rpi-rgb-led-matrix": "^0.4.1",
+    "sense-hat-led": "^1.2.0",
     "utf-8-validate": "^5.0.2"
   }
 }
