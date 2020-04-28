@@ -3,7 +3,7 @@
     "id": "right",
     "width": 32,
     "height": 32,
-    "swimAddress": "192.168.1.68",
+    "swimAddress": "192.168.1.71",
     "swimPort": "9001",
     "chained": 1,
     "parallel": 1,

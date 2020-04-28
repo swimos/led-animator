@@ -64,7 +64,6 @@ class Main {
 
         this.links["ledCommand"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('ledCommand')
             .didSet((newValue) => {
-
                 if(newValue.toString) {
                     this.ledCommand = newValue.toString();
                 }
@@ -232,10 +231,14 @@ class Main {
                 this.pixelsDirty = false;
             // }
             // if(this.matrixDirty) {
+<<<<<<< Updated upstream
                 if(this.matrix && this.panelType === "rpi-rgb-led-matrix") {
                     this.matrix.update();
                 }
                 
+=======
+                this.matrix.update();
+>>>>>>> Stashed changes
                 this.matrixDirty = false;
             // }
             this.lastFrame = this.currentFrame;
