@@ -29,3 +29,4 @@ Run Node (hardware bridge):
 
 links
 https://github.com/easybotics/node-rpi-rgb-led-matrix
+https://www.npmjs.com/package/node-sense-hat

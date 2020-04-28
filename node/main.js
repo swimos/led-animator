@@ -2,7 +2,7 @@ console.info('[main] Loading libraries ...');
 
 const swimClient = require('@swim/client');
 const swim = require('@swim/core')
-const LedMatrix = require("easybotics-rpi-rgb-led-matrix");
+
 const commandLineArgs = process.argv;
 
 class Main {
@@ -20,7 +20,6 @@ class Main {
         this.matrixDirty = false;
         this.ledMessage = "";
         this.ledCommand = null;
-        this.selectedPanelId = -1;
         this.currentFrame = 0;
         this.lastFrame = -1;
         this.animationsList = [];
@@ -63,9 +62,9 @@ class Main {
             })
             .open();
 
-        this.links["ledCommand"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.selectedPanelId}`).downlinkValue().laneUri('ledCommand')
+        this.links["ledCommand"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('ledCommand')
             .didSet((newValue) => {
-                console.info(newValue)
+
                 if(newValue.toString) {
                     this.ledCommand = newValue.toString();
                 }
@@ -78,7 +77,7 @@ class Main {
             .open();         
 
         // do not open now
-        this.links["ledPixelIndexes"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.selectedPanelId}`).downlinkValue().laneUri('ledPixelIndexes')
+        this.links["ledPixelIndexes"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('ledPixelIndexes')
             .didSet((newValue) => {
                 if(newValue.isDefined()) {
                     this.ledPixelIndexes = JSON.parse(`[${newValue.toString()}]`);
@@ -86,7 +85,7 @@ class Main {
             })
 
 
-        this.links["currentFrame"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.selectedPanelId}`).downlinkValue().laneUri('currentFrame')
+        this.links["currentFrame"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('currentFrame')
             .didSet((newValue) => {
                 this.currentFrame = newValue.numberValue(0);
                 if(this.activeAnimation && this.activeAnimation.frames2) {
@@ -97,7 +96,7 @@ class Main {
             })
             .open();         
 
-        this.links["activeAnimation"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.selectedPanelId}`).downlinkValue().laneUri('activeAnimation')
+        this.links["activeAnimation"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('activeAnimation')
             .didSet((newValue) => {
                 if(newValue.toObject) {
                     this.activeAnimation = newValue.toObject();
@@ -105,7 +104,7 @@ class Main {
             })
             .open();         
 
-        this.links["activeAnimationId"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.selectedPanelId}`).downlinkValue().laneUri('activeAnimationId')
+        this.links["activeAnimationId"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('activeAnimationId')
             .didSet((newValue) => {
                 if(newValue.stringValue) {
                     this.activeAnimationId = newValue.stringValue();
@@ -113,7 +112,7 @@ class Main {
             })
             .open();         
 
-        this.links["ledPallette"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.selectedPanelId}`).downlinkValue().laneUri('colorPallette')
+        this.links["ledPallette"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('colorPallette')
             .didSet((newValue) => {
                 if(newValue.stringValue() !== undefined) {
                     const rawArray = JSON.parse(newValue.stringValue());
@@ -127,11 +126,16 @@ class Main {
             .open();         
 
         if(this.config.panelType === "rpi-rgb-led-matrix") {
+            const LedMatrix = require("easybotics-rpi-rgb-led-matrix");
             this.matrix = new LedMatrix(this.panelData.width, this.panelData.height, this.config.chained, this.config.parallel, this.config.brightness, this.config.hardwareMapping, this.config.rgbSequence);
         }
 
         if(this.config.panelType === "sensehat") {
             this.matrix = require("sense-hat-led");
+            if(this.config.rotation) {
+                this.matrix.setRotation(this.config.rotation);
+            }
+            
         }
         
         if(this.config.panelType === "matrixCreator") {
@@ -145,8 +149,7 @@ class Main {
     }
 
     registerPanel() {
-        this.selectedPanelId = this.panelData.id;
-        swimClient.command(this.swimUrl, `/ledPanel/${this.selectedPanelId}`, 'newPanel', this.panelData);
+        swimClient.command(this.swimUrl, `/ledPanel/${this.panelData.id}`, 'newPanel', this.panelData);
     }
 
     drawCurrentPixelIndexes() {
@@ -237,7 +240,7 @@ class Main {
             // }
             this.lastFrame = this.currentFrame;
         }
-        setTimeout(this.mainLoop.bind(this),1);
+        setTimeout(this.mainLoop.bind(this), 3);
     }
 
 }
