@@ -152,7 +152,9 @@ class Main {
     drawCurrentPixelIndexes() {
         let currX = 0;
         let currY = 0;
-        let everloop = new Array(this.matrix.led.length);
+        if(this.config.panelType === "matrixCreator") {
+            let everloop = new Array(this.matrix.led.length);
+        }
 
         //update based on swim led pixel state
         if(this.ledPixelIndexes) {
