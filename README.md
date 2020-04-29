@@ -30,3 +30,6 @@ Run Node (hardware bridge):
 links
 https://github.com/easybotics/node-rpi-rgb-led-matrix
 https://www.npmjs.com/package/node-sense-hat
+
+assembly
+https://learn.adafruit.com/adafruit-rgb-matrix-plus-real-time-clock-hat-for-raspberry-pi/assembly

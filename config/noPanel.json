@@ -1,0 +1,9 @@
+{
+    "name": "No Panel",
+    "id": "nopanel",
+    "width": 32,
+    "height": 32,
+    "swimAddress": "127.0.0.1",
+    "swimPort": "9001",
+    "panelType": "none"
+}

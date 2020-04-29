@@ -31,6 +31,9 @@ public class LedPanelState extends AbstractAgent {
   @SwimLane("activeAnimationId")
   ValueLane<String> activeAnimationId = this.<String>valueLane();
 
+  @SwimLane("activeAnimationName")
+  ValueLane<String> activeAnimationName = this.<String>valueLane();
+
   @SwimLane("currentFrame")
   ValueLane<Integer> currentFrame = this.<Integer>valueLane();
 
@@ -52,9 +55,10 @@ public class LedPanelState extends AbstractAgent {
   @SwimLane("setLedCommand")
   CommandLane<String> setLedCommand = this.<String>commandLane().onCommand(commandStr -> {
     ledCommand.set(commandStr);
-    // System.out.println(commandStr);
+    System.out.println(commandStr);
     switch(commandStr) {
       case "play":
+        this.colorPallette.set(this.activeAnimation.get().get("pallette"));
         this.canPlay = true;
         break;
       case "stop":
@@ -92,6 +96,7 @@ public class LedPanelState extends AbstractAgent {
     }
     activeAnimation.set(anim);
     activeAnimationId.set(anim.get("id").stringValue());
+    activeAnimationName.set(anim.get("name").stringValue());
     frameRate.set(anim.get("speed").intValue());
     // frames.set(anim.get("frames"));
     frames2.set(anim.get("frames2"));

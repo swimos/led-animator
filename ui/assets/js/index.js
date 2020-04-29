@@ -1,19 +1,18 @@
+/**
+ * LedMatrixPage class drives the LED Animation page
+ * in this code a 'panel' is any LED panel, matrix, array, etx that can be animated
+ * It is assumed that every panel has an array of individually addressable RGB LEDs. 
+ * This class handles the page only. The actual driving and updating of LED panels is handled
+ * with Node in /node/main.js of this project.
+ */
 class LedMatrixPage {
 
   swimUrl = null;
-  rootHtmlElementId = null;
-  rootSwimTemplateId = null;
-  rootHtmlElement = null;
-  rootSwimElement = null;
-
-  appConfig = null;
-
+  dialog = null;
   links = {};
+  panelLinks = [];
   ledPixels = [];
-  selectedPixelIndex = -1;
-  selectedPixelDiv = null;
   selectedFrame = 0;
-  fastTween = swim.Transition.duration(100);
   currentPanelId = null;
   pixelGrid = null;
   gridOffsetX = null;
@@ -28,40 +27,35 @@ class LedMatrixPage {
   activeTool = "brush";
   isFgColorActive = true;
   foregroundColor = null;
-  backgroundColor = swim.Color.rgb(0,0,0);
+  backgroundColor = swim.Color.rgb(0, 0, 0);
 
   activeAnimation = null;
   animationListSynced = false;
   animationsList = {};
+  animationTimer = null;
 
   panelList = [];
   panelInfo = null;
-  panelWidth = 32;
-  panelHeight = 32;
+  panelWidth = 0;
+  panelHeight = 0;
 
   framesDiv = null;
   frameDivCache = [];
   syncPreview = false;
   ledCommand = "stop";
-  panelLinks = [];
 
-  constructor(swimUrl, elementID, templateID) {
+  constructor(swimUrl) {
     this.swimUrl = swimUrl;
 
   }
 
+  /**
+   * class init. setup swim links and deafault objects/variable 
+   * and then call start()
+   */
   initialize() {
-    console.info("[IndexPage]: init", this.userGuid);
 
-    // this.links["ledPixels"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('ledPixels')
-    //   .didSet((newValue) => {
-    //     if(newValue.stringValue() !== undefined) {
-    //       this.ledPixels = JSON.parse(newValue.stringValue());
-    //       this.drawPixels();
-    //       // this.links["ledPixels"].close();
-    //     }
-    //   });
-
+    // load list of animations saved in swim animationService
     this.links["animList"] = swim.nodeRef(this.swimUrl, '/animationService').downlinkMap().laneUri('animationsList')
       .didUpdate((key, value) => {
         this.animationsList[key.stringValue()] = value.toObject();
@@ -75,56 +69,23 @@ class LedMatrixPage {
         if (!this.animationListSynced) {
           this.animationListSynced = true;
           this.updateAnimationList();
-          // this.selectAnimation(Object.keys(this.animationsList)[0]);
-          
-
         }
       });
 
+    // load list of LED panels being managed by swim animationService
     this.links["panels"] = swim.nodeRef(this.swimUrl, '/animationService').downlinkMap().laneUri('panels')
       .didUpdate((key, value) => {
         this.panelList[key.stringValue()] = value.toObject();
-        if(this.currentPanelId === null) {
-          this.currentPanelId = key.stringValue();
-          this.links["panelInfo"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('info')
-          .didSet(((newValue) => {
-            if(newValue.isDefined()) {
-              this.panelInfo = newValue.toObject();
-              this.panelWidth = this.panelInfo.width;
-              this.panelHeight = this.panelInfo.height;
-          
-            }
-    
-          }).bind(this))
-          .open();          
+        if (this.currentPanelId === null) {
+          this.selectPanel(key.stringValue());
         }
         this.updateNewPanelList();
       })
-      .didRemove((key) => {
-        delete this.panelList[key.stringValue()];
-        this.updateNewPanelList();
-      })
 
-    this.links["activeAnim"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('activeAnimationId')
-      .didSet((newValue) => {
-        this.activeAnimation = newValue;
-        
-      });
+    // create dialog manager to use later
+    this.dialog = new Dialog("overlayBg", "overlayContent", "overlayTitle");
 
-    this.links["ledCommand"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('ledCommand')
-      .didSet((newValue) => {
-        this.ledCommand = newValue.stringValue("stop");
-      });
-
-
-
-    window.requestAnimationFrame(() => {
-      this.start();
-    })
-  }
-
-  start() {
-    console.info("[IndexPage]: start");
+    // setup some default values
     this.pixelGrid = document.getElementById("pixelGrid");
     this.framesDiv = document.getElementById("framesContainer");
     this.pixelCanvas = document.getElementById("pixelCanvas");
@@ -134,166 +95,267 @@ class LedMatrixPage {
     this.gridOffsetX = this.pixelGrid.offsetLeft;
     this.gridOffsetY = this.pixelGrid.offsetTop;
 
+    // start page on next render frame
+    window.requestAnimationFrame(() => {
+      this.start();
+    })
+  }
+
+  /**
+   * Start up the LED Animator page
+   */
+  start() {
+
+    // open all our swim links
     for (let linkLKey in this.links) {
       this.links[linkLKey].open();
     }
 
+    // draw color pallettes and setup page default state
     this.drawFullColorPallette();
     this.newAnimation();
-    this.selectColor(swim.Color.rgb(255,255,255));
+    this.selectColor(swim.Color.rgb(255, 255, 255));
 
-    document.body.onresize = () => {
-      this.handleResize();
-    };
-
-    document.getElementById("pixelCanvas").addEventListener("contextmenu", function(e){
+    // prevent right click on canvas so we can use that as erase pixel
+    document.getElementById("pixelCanvas").addEventListener("contextmenu", function (e) {
       e.preventDefault();
-    }, false);    
+    }, false);
 
+    // event listern for import piskel button in import dialog
     document.getElementById('piskelImportButton').addEventListener('change', this.importPiskel.bind(this), false)
 
+    // start render loop
     window.requestAnimationFrame(() => {
       this.render();
     });
 
   }
 
+  /**
+   * main render loop
+   */
   render() {
 
+    // update canvas in pixelGrid
     this.drawPixels();
 
+    // start render loop timer
     window.requestAnimationFrame(() => {
       this.render();
     })
   }
 
-  handleResize() {
-    this.drawFullColorPallette();
-  }
-
-  handleGridEvent(evt) {
-    const pallette = JSON.parse(this.animationsList[this.selectedAnimation].pallette);
-    const pixelX = Math.floor((evt.clientX - this.gridOffsetX) / 13);
-    const pixelY = Math.floor((evt.clientY - this.gridOffsetY) / 13);
-    const pixelIndex = (pixelY * this.panelWidth) + pixelX;
-    const pixelColorIndex = this.ledPixels[pixelIndex];
-    document.getElementById("cursorXPos").innerText = pixelX;
-    document.getElementById("cursorYPos").innerText = pixelY;
-    document.getElementById("rgbAtCursor").innerText = pallette[pixelColorIndex];
-    if (evt.buttons === 1 || evt.buttons === 2) {
-      this.selectPixel(evt, pixelIndex, pallette);
-    }
-
-  }  
-
-  selectPanel(panelId = -1) {
-    if(panelId === -1) {
-      const selector = document.getElementById("panelSelector");
-      const selection = selector[selector.selectedIndex].value;
-      this.currentPanelId = selection;
-    } else {
-      this.currentPanelId = panelId;
-    }
-    this.links["ledCommand"].close();
-    this.links["ledCommand"].open();
-    this.links["activeAnim"].close();
-    this.links["activeAnim"].open();
-    this.links["panelInfo"].close();
-    this.links["panelInfo"].open();
-    this.updateNewPanelList();
-    
-  }
-
-  drawPixels() {
-    if(!this.ledPixels || this.panelWidth == 0 || this.panelHeight == 0 || Object.keys(this.animationsList).length === 0) {
+  /**
+   * Select which LED panel/matrix the UI is managing
+   * @param {*} panelId 
+   */
+  selectPanel(panelId = null) {
+    // make sure there is a value
+    if (panelId == null) {
+      console.info("no panel id")
       return false;
     }
-    // const pixelArr = JSON.parse(this.ledPixels);
+    // close panel info swim links for previously selected panel 
+    for (let linkLKey in this.panelLinks) {
+      this.panelLinks[linkLKey].close();
+      delete this.panelLinks[linkLKey];
+    }
+
+    // set new panel id
+    this.currentPanelId = panelId;
+
+    // setup the panel info swim links we need to keep track of the selected panel state
+    this.panelLinks["activeAnimId"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('activeAnimationId')
+      .didSet((newValue) => {
+        this.activeAnimation = newValue;
+      });
+
+    this.panelLinks["activeAnimation"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('activeAnimation')
+      .didSet((newValue) => {
+        if (newValue.isDefined()) {
+          // console.info(newValue.get("name").stringValue());
+          document.getElementById("panelAnimName").innerHTML = newValue.get("name").stringValue();
+        } else {
+          document.getElementById("panelAnimName").innerHTML = "None";
+        }
+      });
+
+    this.panelLinks["ledCommand"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('ledCommand')
+      .didSet((newValue) => {
+        this.ledCommand = newValue.stringValue("stop");
+        document.getElementById("panelCommand").innerHTML = this.ledCommand;
+        const syncButton = document.getElementById("syncButton");
+        const playButton = document.getElementById("animPlayButton");
+        // update the UI buttons
+        if (this.ledCommand === "play") {
+          playButton.innerText = "stop";
+          playButton.className = "material-icons on";
+          syncButton.className = "material-icons";
+          syncButton.innerText = "sync";
+        }
+        if (this.ledCommand === "stop") {
+          playButton.innerText = "play_arrow";
+          playButton.className = "material-icons";
+          syncButton.className = "material-icons";
+          syncButton.innerText = "sync";
+        }
+        if (this.ledCommand === "sync") {
+          this.syncPreview = true;
+          playButton.innerText = "play_arrow";
+          playButton.className = "material-icons";
+          syncButton.className = "material-icons on";
+          syncButton.innerText = "sync_disabled";
+        }
+      });
+
+    this.panelLinks["panelInfo"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('info')
+      .didSet((newValue) => {
+        if (newValue.isDefined()) {
+          this.panelInfo = newValue.toObject();
+          this.panelName = this.panelInfo.name;
+          this.panelWidth = this.panelInfo.width;
+          this.panelHeight = this.panelInfo.height;
+          this.pixelCanvas.width = this.panelWidth;
+          this.pixelCanvas.height = this.panelHeight;
+          document.getElementById('panelSize').innerHTML = `W: ${this.panelWidth} H: ${this.panelHeight}`;
+          document.getElementById('panelNameDiv').innerHTML = this.panelName;
+          // this.drawPixels();
+        }
+
+      });
+
+
+    // open the swim panel info links for newly selected panel
+    for (let linkLKey in this.panelLinks) {
+      this.panelLinks[linkLKey].open();
+    }
+
+    // refresh panel list state
+    this.updateNewPanelList();
+
+  }
+
+  /**
+   * draw current frame to pixel grid canvas
+   * this is called on render loop and doenst need to be called outside of that
+   */
+  drawPixels() {
+    // make sure we have what we need to work with
+    if (!this.ledPixels || this.panelWidth == 0 || this.panelHeight == 0 || Object.keys(this.animationsList).length === 0) {
+      return false;
+    }
+
+    // get selected animation data from animation list
     const animData = this.animationsList[this.selectedAnimation];
+    // get frames data for animation
     const framesList = animData.frames2;
+    // set led pixel data for selected frame
     this.ledPixels = JSON.parse(framesList[this.selectedFrame]);
+
+    // if there are not pixels, create a new animation to fill things in properly
+    if (this.ledPixels.length === 0) {
+      this.newAnimation();
+    }
+
+    // grab current animation pallette
     const pallette = JSON.parse(this.animationsList[this.selectedAnimation].pallette);
 
-    // this.pixelGrid.innerHTML = "";
+    // create image data on pixel canvas context
+    const frameImageData = this.pixelCanvasCxt.createImageData(this.panelWidth, this.panelHeight);
 
-    const frameImageData = this.pixelCanvasCxt.createImageData(this.panelWidth,this.panelHeight);
-    
-    // frameImageData.put
-    // draw on canvas
+    // draw pixels to frameImageData
     let dataIndex = 0;
     for (const pixelIndex in this.ledPixels) {
       const pixel = this.ledPixels[pixelIndex];
       const color = pallette[pixel].split(",");
       frameImageData.data[dataIndex] = parseInt(color[0]);
-      frameImageData.data[dataIndex+1] = parseInt(color[1]);
-      frameImageData.data[dataIndex+2] = parseInt(color[2]);
-      frameImageData.data[dataIndex+3] = 255;
-      dataIndex = dataIndex+4;
+      frameImageData.data[dataIndex + 1] = parseInt(color[1]);
+      frameImageData.data[dataIndex + 2] = parseInt(color[2]);
+      frameImageData.data[dataIndex + 3] = 255;
+      dataIndex = dataIndex + 4;
     }
 
+    // draw new frame to canvas
     this.pixelCanvasCxt.putImageData(frameImageData, 0, 0);
-    
-    // this.pixelCanvas.addEventListener('mousemove', handleGridEvent);
 
-    // // draw with divs
-    // for (const pixelIndex in this.ledPixels) {
-    //   const pixel = this.ledPixels[pixelIndex];
-    //   const color = pallette[pixel].split(",");
-    //   if (pixel != undefined) {
-    //     if(!this.pixelDivCache[pixelIndex]) {
-    //       const pixelDiv = document.createElement("div");
-    //       this.pixelGrid.appendChild(pixelDiv);
-    //       this.pixelDivCache[pixelIndex] = pixelDiv;
-    //     }
-    //     this.pixelDivCache[pixelIndex].style.backgroundColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-    //   }
-
-    // }
   }
 
+  /**
+   * Event handler to catch and handle mouse move and mouse down events on pixel canvas
+   * @param {event} evt 
+   */
+  handleGridEvent(evt) {
+    // grab active color pallette
+    const pallette = JSON.parse(this.animationsList[this.selectedAnimation].pallette);
+    //find size of pixels being drawn based on size of pixel canvas
+    const gridPixelWidth = this.pixelGrid.offsetWidth / this.panelWidth;
+    const gridPixelHeight = this.pixelGrid.offsetHeight / this.panelHeight;
+    // determine pixel X,Y of cursor based on pixel size in canvas
+    const pixelX = Math.floor((evt.clientX - this.gridOffsetX) / gridPixelWidth);
+    const pixelY = Math.floor((evt.clientY - this.gridOffsetY) / gridPixelHeight);
+    // find color of pixel under cursor
+    const pixelIndex = (pixelY * this.panelWidth) + pixelX;
+    const pixelColorIndex = this.ledPixels[pixelIndex];
+    // update info panel
+    document.getElementById("cursorXPos").innerText = pixelX;
+    document.getElementById("cursorYPos").innerText = pixelY;
+    document.getElementById("rgbAtCursor").innerText = pallette[pixelColorIndex];
+    // handle left/right mouse clicks
+    if (evt.buttons === 1 || evt.buttons === 2) {
+      this.selectPixel(evt, pixelIndex, pallette);
+    }
+
+  }
+
+  /**
+   * 
+   * @param {mouseEvent} evt 
+   * @param {pixelIndex} index 
+   * @param {colorPallette} pallette 
+   */
   selectPixel(evt, index, pallette) {
-    // console.info(evt, index, pallette);
+
     const currPixelColor = pallette[this.ledPixels[index]];
-    switch(this.activeTool) {
+    // switch/case is for adding more tools later such as a color picker
+    switch (this.activeTool) {
       case "brush":
       default:
-        if (evt.buttons === 1 || evt.buttons === 2) {
-          // console.info(this.ledPixels[index]);
-          // console.info(currPixelColor);
-          let currColorArr = null;
-          if(evt.buttons === 1) {
-            currColorArr = `${this.foregroundColor.r},${this.foregroundColor.g},${this.foregroundColor.b}`;
-          } else if(evt.buttons === 2) {
-            currColorArr = `${this.backgroundColor.r},${this.backgroundColor.g},${this.backgroundColor.b}`;
-          }
-          let palletteArr = JSON.parse(this.animationsList[this.selectedAnimation].pallette);
-          let palletteIndex = palletteArr.indexOf(currColorArr);
-          if(palletteIndex < 0) {
-            palletteArr.push(currColorArr)
-            this.animationsList[this.selectedAnimation].pallette = JSON.stringify(palletteArr);
-            palletteIndex = palletteArr.length-1;
-            this.drawActiveColorPallette();
-          }
-          this.ledPixels[index] = palletteIndex;
-          this.animationsList[this.selectedAnimation].frames2[this.selectedFrame] = `[${this.ledPixels.toString()}]`;
-          if(this.ledCommand === "sync") {
-            this.showLedPixels();
-          }
-          
-          // this.animationsList[this.selectedAnimation].frames2[this.selectedFrame] = this.ledPixels;
-          // console.info(index, palletteIndex, this.ledPixels);
-          // this.drawPixels();
+        let currColorArr = null;
+        // pick what the new color will be based on which mouse button was clicked
+        if (evt.buttons === 1) {
+          currColorArr = `${this.foregroundColor.r},${this.foregroundColor.g},${this.foregroundColor.b}`;
+        } else if (evt.buttons === 2) {
+          currColorArr = `${this.backgroundColor.r},${this.backgroundColor.g},${this.backgroundColor.b}`;
+        }
+        // find color index of new color in active color pallette
+        let palletteIndex = pallette.indexOf(currColorArr);
+        // if color index now found add new color
+        if (palletteIndex < 0) {
+          pallette.push(currColorArr)
+          this.animationsList[this.selectedAnimation].pallette = JSON.stringify(pallette);
+          palletteIndex = pallette.length - 1;
+          this.drawActiveColorPallette();
+        }
+        // update pixel color in led pixel array for current frame
+        this.ledPixels[index] = palletteIndex;
+        // update frame data in animation
+        this.animationsList[this.selectedAnimation].frames2[this.selectedFrame] = `[${this.ledPixels.toString()}]`;
+
+        // if sync enabled, update panel with changes
+        if (this.ledCommand === "sync") {
+          this.showLedPixels();
         }
 
         break;
 
-        
+
     }
-    // this.selectedPixelIndex = index;
-    // this.selectedPixelDiv = evt.target;
-    // this.updateLedPixel();
   }
 
+  /**
+   * update what is shown on LED panel. Used when sync enabled.
+   * Node listens on this lane to know what to draw on the panels themselves
+   */
   showLedPixels() {
     const animData = this.animationsList[this.selectedAnimation];
     const framesList = animData.frames2;
@@ -303,13 +365,19 @@ class LedMatrixPage {
     // swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setLedCommand', "showPixels");
   }
 
+  /**
+   * turn on ability to sync LED panel with what is shown on animation preview
+   */
   syncPanelToPreview() {
-    if(!this.syncPreview) {
+    if (!this.syncPreview) {
+      if (this.ledCommand === "play") {
+        this.stopAnimationOnPanel();
+      }
       this.syncPreview = true;
       swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setLedCommand', 'sync');
       this.pushPalletteToPanel();
       this.showLedPixels();
-  
+
     } else {
       this.syncPreview = false;
       swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setLedCommand', 'stop');
@@ -317,31 +385,41 @@ class LedMatrixPage {
     }
   }
 
+  /**
+   * handle when the RGB sliders change
+   */
   updateColorFromSlider() {
     const newR = document.getElementById("redInputRange").value;
     const newB = document.getElementById("blueInputRange").value;
     const newG = document.getElementById("greenInputRange").value;
-    this.selectColor(swim.Color.rgb(newR,newG,newB));
+    this.selectColor(swim.Color.rgb(newR, newG, newB));
   }
 
+  /**
+   * handle when the RGB input fields change
+   */
   updateSelectedColor() {
     const newR = document.getElementById("redInput").value;
     const newB = document.getElementById("blueInput").value;
     const newG = document.getElementById("greenInput").value;
-    this.selectColor(swim.Color.rgb(newR,newG,newB));
+    this.selectColor(swim.Color.rgb(newR, newG, newB));
   }
 
+  /**
+   * Utility method to set all the pixels of the current frame to a specific color. defaults to black.
+   * @param {*} color 
+   */
   clearLedPixels(color = "0,0,0") {
     let newArr = Array.apply(null, Array(this.panelWidth * this.panelHeight));
-    if(color === "selected") {
+    if (color === "selected") {
       color = `${this.foregroundColor.r},${this.foregroundColor.g},${this.foregroundColor.b},`
     }
     const pallette = JSON.parse(this.animationsList[this.selectedAnimation].pallette);
     let palletteIndex = pallette.indexOf(color);
-    if(palletteIndex < 0) {
+    if (palletteIndex < 0) {
       pallette.push(color)
       this.animationsList[this.selectedAnimation].pallette = JSON.stringify(pallette);
-      palletteIndex = pallette.length-1;
+      palletteIndex = pallette.length - 1;
       this.drawActiveColorPallette();
     }
 
@@ -351,31 +429,37 @@ class LedMatrixPage {
 
     this.animationsList[this.selectedAnimation].frames2[this.selectedFrame] = `[${this.ledPixels}]`;
 
-    this.drawPixels();
+    // if sync enabled, update panel with changes
+    if (this.ledCommand === "sync") {
+      this.showLedPixels();
+    }
 
   }
 
+  /**
+   * Draw the elements which make up the frames list row in the preview
+   */
   drawFramesListElements() {
     const animData = this.animationsList[this.selectedAnimation];
     const framesList = animData.frames2;
 
     for (let i = 0; i < framesList.length; i++) {
 
-      if(!this.frameDivCache[i]) {
+      if (!this.frameDivCache[i]) {
         const tempDiv = document.createElement("div");
         tempDiv.addEventListener('click', (evt) => {
           this.selectFrame(i);
         });
         this.framesDiv.appendChild(tempDiv);
-  
+
         this.frameDivCache[i] = tempDiv;
-        if(i%5===(5-1) || i === 0 || i === (framesList.length-1)) {
-          tempDiv.innerHTML = (i+1);
+        if (i % 5 === (5 - 1) || i === 0 || i === (framesList.length - 1)) {
+          tempDiv.innerHTML = (i + 1);
         } else {
           tempDiv.innerHTML = "&nbsp;";
         }
         tempDiv.innerHTML += "<div class='marker'>|</div><div class='frameBox'></div>";
-  
+
       }
 
       const frameDiv = this.frameDivCache[i];
@@ -386,31 +470,34 @@ class LedMatrixPage {
         frameDiv.className = "frame";
       }
 
-      
     }
 
   }
 
+  /**
+   * handle selecting a new frame in the animation preview
+   * @param {number} frameIndex 
+   */
   selectFrame(frameIndex) {
-    if(frameIndex < 0) {
+    if (frameIndex < 0) {
       frameIndex = 0;
     }
-    if(frameIndex >= this.animationsList[this.selectedAnimation].frames2.length) {
-      frameIndex  =this.animationsList[this.selectedAnimation].frames2.length-1;
+    if (frameIndex >= this.animationsList[this.selectedAnimation].frames2.length) {
+      frameIndex = this.animationsList[this.selectedAnimation].frames2.length - 1;
     }
     this.selectedFrame = frameIndex;
-    // const animData = this.animationsList[this.selectedAnimation];
-    // const framesList = animData.frames2;
-    // this.ledPixels = JSON.parse(framesList[frameIndex]);
-    // this.drawPixels();
-    if(this.syncPreview) {
+    if (this.syncPreview) {
       this.showLedPixels();
     }
-    
+
     this.drawFramesListElements();
 
   }
 
+  /**
+   * TODO: fix this 
+   * should delete selected frame from current animation
+   */
   deleteFrame() {
     if (this.selectedFrame != 0) {
       const animData = this.animationsList[this.selectedAnimation];
@@ -422,6 +509,9 @@ class LedMatrixPage {
     }
   }
 
+  /**
+   * add a new frame to current animation preview
+   */
   addFrame() {
     let newArr = Array.apply(null, Array(this.panelWidth * this.panelHeight));
     let newFramePixels = newArr.map(function (x, i) {
@@ -433,6 +523,9 @@ class LedMatrixPage {
 
   }
 
+  /**
+   * duplicate current frame. This will append the duplicated frame to the end of the animation
+   */
   duplicateFrame() {
     const newFrame = this.animationsList[this.selectedAnimation].frames2[this.selectedFrame].slice()
     this.animationsList[this.selectedAnimation].frames2.push(newFrame);
@@ -441,48 +534,90 @@ class LedMatrixPage {
 
   }
 
-  
+  /**
+   * Select an animation to display in the animation preview
+   * @param {id} animKey 
+   */
   selectAnimation(animKey) {
     this.selectedAnimation = animKey
-    
+
     document.getElementById("animName").value = this.animationsList[this.selectedAnimation].name;
+    document.getElementById("nameIdValue").innerHTML = this.animationsList[this.selectedAnimation].id;
+
     document.getElementById("animSpeed").value = Math.round(1000 / this.animationsList[this.selectedAnimation].speed);
     this.selectFrame(0);
-    for(let tempDiv of this.frameDivCache) {
+    for (let tempDiv of this.frameDivCache) {
       this.framesDiv.removeChild(tempDiv);
       delete this.frameDivCache[tempDiv];
     }
     this.frameDivCache = [];
     this.drawFramesListElements();
-    this.framesDiv.scrollTo(0,0)
-    this.drawPixels();
+    this.framesDiv.scrollTo(0, 0)
+    // this.drawPixels();
     this.drawActiveColorPallette();
-    if(this.syncPreview) {
+    if (this.syncPreview) {
       this.showLedPixels();
     }
-    
+
   }
 
+  /**
+   * util to push current active pallette to selected panel
+   */
   pushPalletteToPanel() {
     swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setColorPallette', this.animationsList[this.selectedAnimation].pallette);
   }
 
+  /**
+   * util to push current animation preview to panel
+   */
   pushAnimationToPanel() {
     swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setActiveAnimation', this.animationsList[this.selectedAnimation]);
   }
 
+  /**
+   * change panel command state to play. This should make it play whatever the active animation on the panel is.
+   */
   playAnimationOnPanel() {
     swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setLedCommand', 'play');
   }
 
+  /**
+   * change panel state to stop. stops animations or sync.
+   */
   stopAnimationOnPanel() {
     swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setLedCommand', 'stop');
   }
 
-  animationTimer = null;
+  /**
+   * method called by button in ui to toggle panel animation state
+   */
+  togglePanelAnimationState() {
+    if (this.syncPreview) {
+      this.syncPanelToPreview(); // this will stop sync if active
+    }
+
+    if (this.ledCommand === "stop") {
+      this.playAnimationOnPanel();
+      // document.getElementById("animPlayButton").value = "Stop";
+    } else {
+      this.stopAnimationOnPanel();
+      // document.getElementById("animPlayButton").value = "Play";
+    }
+
+  }
+
+  /**
+   * play the current active action in the preview panel
+   * this mostly just ticks forward the current frame number
+   * actual rendering is done in the main animation loop
+   */
   playAnimationPreview() {
     this.stopAnimationPreview();
-    document.getElementById("playButton").value = "S";
+    const playButton = document.getElementById("playButton");
+    playButton.innerText = "stop";
+    playButton.className = "material-icons on"
+    
     let nextFrame = this.selectedFrame + 1;
     let totalFrames = this.animationsList[this.selectedAnimation].frames2.length;
     if (nextFrame >= totalFrames) {
@@ -490,38 +625,46 @@ class LedMatrixPage {
     }
     this.selectFrame(nextFrame);
 
-    // if(this.framesDiv.children[nextFrame]) {
-
-    //   const scrollx = this.framesDiv.children[nextFrame].offsetLeft - this.framesDiv.offsetLeft - (this.framesDiv.offsetWidth/2);
-    //   this.framesDiv.scrollTo(scrollx,0)
-    // }
-    
     this.animationTimer = setTimeout(this.playAnimationPreview.bind(this), this.animationsList[this.selectedAnimation].speed);
 
   }
 
+  /**
+   * stop animation playing in preview panel
+   */
   stopAnimationPreview() {
     clearInterval(this.animationTimer);
     this.animationTimer = null;
-    document.getElementById("playButton").value = "P";
+    const playButton = document.getElementById("playButton");
+    playButton.innerText = "play_arrow";
+    playButton.className = "material-icons"
+
   }
 
+  /**
+   * called by button in ui to toggle preview animation state
+   */
   toggleAnimationPreview() {
-    if(this.animationsList[this.selectedAnimation].frames2.length <= 1) {
+    if (this.animationsList[this.selectedAnimation].frames2.length <= 1) {
       return false;
     }
     if (this.animationTimer === null) {
       this.playAnimationPreview();
-      
+
     } else {
       this.stopAnimationPreview();
-      
+
     }
   }
 
-  selectColor(color = swim.Color.rgb(255,255,255)) {
+  /**
+   * Called when clicking on a color chip in either pallette
+   * this will update selectedColor to be the color clicked
+   * @param {*} color 
+   */
+  selectColor(color = swim.Color.rgb(255, 255, 255)) {
     // this.selectedColor = swim.Color.rgb(newR, newG, newB);
-    if(this.isFgColorActive) {
+    if (this.isFgColorActive) {
       this.foregroundColor = color;
       document.getElementById("foregroundColorChip").style.backgroundColor = `rgb(${this.foregroundColor.r},${this.foregroundColor.g},${this.foregroundColor.b})`
       document.getElementById('redInput').value = Math.round(this.foregroundColor.r);
@@ -539,28 +682,38 @@ class LedMatrixPage {
       document.getElementById('greenInputRange').value = Math.round(this.backgroundColor.g);
       document.getElementById('blueInput').value = Math.round(this.backgroundColor.b);
       document.getElementById('blueInputRange').value = Math.round(this.backgroundColor.b);
-  
+
     }
   }
 
+  /**
+   * draw the 'full' rainbow color pallette
+   * adjusting the totalColors value will change the total number of color chips rendered
+   * into the full color pallette. The code will do its best to provide a full range of colors and shades 
+   * which fit into that total number. There will always be an additional greyscale row. 
+   * Values less then 32 or greater then 462 are a bit useless.
+   * examples:
+   *    32 chips = 6 colors w/ 5 shades each
+   *    132 chips = 12 colors w/ 11 shades each
+   *    256 chips = 16 colors w/ 16 shades each
+   *    462 chip = 22 colors w/ 21 shades each
+   */
   drawFullColorPallette() {
+    const totalColors = 462;
     const palletteDiv = document.getElementById("colorPallette");
-    const totalColors = 256;
     const totalShades = Math.floor(Math.sqrt(totalColors));
     const palletteWidth = palletteDiv.offsetWidth;
     const colorChipSize = Math.floor(palletteWidth / totalShades);
     let currHue = null;
     let currShade = null;
     let totalChips = 0;
-    palletteDiv.innerHTML = ""
-    // palletteDiv.style.width = `calc(${colorChipSize}px * ${totalShades})`
+    palletteDiv.innerHTML = ""; // lazy clear the parent div
 
     // render greys
     for (let i = 0; i < totalShades; i++) {
       const currGrey = Math.round(Utils.interpolate(255, 0, i, totalShades - 1));
       const newColor = swim.Color.rgb(currGrey, currGrey, currGrey);
       const newColorChip = document.createElement("div");
-      // newColorChip.className = (this.selectedColor && this.selectedColor.equals(newColor)) ? "selectedColor" : "";
       newColorChip.id = `colorChip-${totalChips}`;
       newColorChip.style.backgroundColor = `rgb(${newColor.r}, ${newColor.g}, ${newColor.b})`
       newColorChip.style.height = newColorChip.style.width = `${colorChipSize}px`;
@@ -576,9 +729,6 @@ class LedMatrixPage {
 
       if (i % totalShades === 0) {
         currHue = Utils.interpolate(0, 360, i, totalColors);
-        // currShade = 1;
-      } else {
-
       }
       currShade = Utils.interpolate(.9, 0, i % totalShades, totalShades);
       const newColor = swim.Color.hsl(currHue, 1, currShade).rgb();
@@ -586,7 +736,6 @@ class LedMatrixPage {
       newColor.g = Math.round(newColor.g);
       newColor.b = Math.round(newColor.b);
       const newColorChip = document.createElement("div");
-      // newColorChip.className = (this.selectedColor && this.selectedColor.equals(newColor)) ? "selectedColor" : "";
       newColorChip.id = `colorChip-${totalChips}`;
       newColorChip.style.backgroundColor = `rgb(${newColor.r}, ${newColor.g}, ${newColor.b})`
       newColorChip.style.height = newColorChip.style.width = `${colorChipSize}px`;
@@ -599,19 +748,20 @@ class LedMatrixPage {
     }
   }
 
+  /**
+   * draw the active color pallette. This should be every unique color in the selected animation.
+   */
   drawActiveColorPallette() {
-    console.info("draw active color pallette");
-
     const pallette = JSON.parse(this.animationsList[this.selectedAnimation].pallette);
     const palletteDiv = document.getElementById("activePallette");
     const palletteWidth = palletteDiv.offsetWidth;
-    const colorChipSize = 14;
+    const colorChipSize = 12;
     let totalChips = 0;
 
     palletteDiv.innerHTML = "";
-    for(let i=0; i<pallette.length; i++) {
+    for (let i = 0; i < pallette.length; i++) {
       const colorArr = pallette[i].split(",");
-      const currColor = swim.Color.rgb(colorArr[0],colorArr[1],colorArr[2]);
+      const currColor = swim.Color.rgb(colorArr[0], colorArr[1], colorArr[2]);
       const newColorChip = document.createElement("div");
       // newColorChip.className = (this.selectedColor && this.selectedColor.equals(currColor)) ? "selectedColor" : "";
       newColorChip.id = `colorChip2-${totalChips}`;
@@ -624,12 +774,16 @@ class LedMatrixPage {
       palletteDiv.appendChild(newColorChip);
       totalChips++;
     }
-    if(this.ledCommand === "sync") {
+    if (this.ledCommand === "sync") {
       this.pushPalletteToPanel();
     }
-    
+
   }
 
+  /**
+   * refresh the animation list dropdown in the load dialog
+   * this happens in the background so the dialog is always update to date when shown
+   */
   updateAnimationList() {
     const selectBox = document.getElementById("animationList")
     selectBox.innerHTML = "";
@@ -645,15 +799,14 @@ class LedMatrixPage {
     }
   }
 
-  
+  /**
+   * Update the list of panels sent from the animationService
+   * this will render the panel listing the panel section of the page
+   */
   updateNewPanelList() {
     const mainDiv = document.getElementById("mainPanelList");
 
     mainDiv.innerHTML = "";
-    for (let panelKey in this.panelLinks) {
-      this.panelLinks[panelKey].close();
-    }
-
 
     for (let panelKey in this.panelList) {
       const currPanel = this.panelList[panelKey];
@@ -667,32 +820,26 @@ class LedMatrixPage {
       }
 
       const nameDiv = document.createElement("div");
-      nameDiv.innerHTML = `Name: ${currPanel.name} &nbsp;&nbsp;&nbsp; W: ${currPanel.width} H: ${currPanel.height}`;
+      nameDiv.innerHTML = `${currPanel.name}`;
       newRow.appendChild(nameDiv);
 
-      const animNameDiv = document.createElement("div");
-      newRow.appendChild(animNameDiv);
+      const sizeDiv = document.createElement("div");
+      sizeDiv.innerHTML = `${currPanel.width}px x ${currPanel.height}px`;
+      newRow.appendChild(sizeDiv);
 
-      this.panelLinks[`animName-${panelKey}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${panelKey}`).downlinkValue().laneUri('activeAnimation')
-        .didSet((newValue) => {
-          if(newValue.isDefined()) {
-            animNameDiv.innerText = `Animation: ${newValue.get("name").toString()}`;
-          }
-          
-        })
-        
       const commandDiv = document.createElement("div");
       newRow.appendChild(commandDiv);
 
       this.panelLinks[`animCommand-${panelKey}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${panelKey}`).downlinkValue().laneUri('ledCommand')
         .didSet((newValue) => {
-          commandDiv.innerText = `Command: ${newValue.toString()}`;
-        })
-  
+          if (newValue.isDefined()) {
+            commandDiv.innerText = `Command: ${newValue.toString()}`;
+          }
 
+        })
 
       mainDiv.appendChild(newRow);
-      
+
     }
     for (let panelKey in this.panelLinks) {
       this.panelLinks[panelKey].open();
@@ -700,6 +847,9 @@ class LedMatrixPage {
 
   }
 
+  /**
+   * create a new empty animation and set it as active
+   */
   newAnimation() {
     const newAnimId = Utils.newGuid();
     const newArr = Array.apply(null, Array(this.panelWidth * this.panelHeight));
@@ -722,44 +872,80 @@ class LedMatrixPage {
 
   }
 
+  /**
+   * load selected animation into preview 
+   */
   loadAnimation() {
     const dropdown = document.getElementById("animationList");
     const selectedAnim = dropdown[dropdown.selectedIndex].value;
     this.selectAnimation(selectedAnim);
     this.stopAnimationPreview();
+    this.dialog.close()
   }
 
+  /**
+   * save current preview animation to animationService in swim
+   */
   saveAnimation() {
-    const saveData = swim.Record.create()
-      .slot("id", this.selectedAnimation)
-      .slot("data", this.animationsList[this.selectedAnimation]);
-    swim.command(this.swimUrl, '/animationService', 'saveAnimation', saveData);
+    if (this.animationsList[this.selectedAnimation].name !== "New Animation") {
+      const saveData = swim.Record.create()
+        .slot("id", this.selectedAnimation)
+        .slot("data", this.animationsList[this.selectedAnimation]);
+      swim.command(this.swimUrl, '/animationService', 'saveAnimation', saveData);
+    } else {
+      console.error("new animation")
+    }
   }
 
+  /**
+   * update current animation name from name input field
+   */
   updateName() {
     const newName = document.getElementById("animName").value;
     this.animationsList[this.selectedAnimation].name = newName;
   }
 
+  /**
+   * update current animation speed from speed input field
+   */
   updateSpeed() {
     const newSpeed = Math.ceil(1000 / document.getElementById("animSpeed").value);
     this.animationsList[this.selectedAnimation].speed = newSpeed;
     if (this.animationTimer !== null) {
       this.playAnimationPreview();
-    }    
+    }
   }
 
+  /**
+   * show overlay dialog
+   * @param {*} dialogId 
+   */
+  showDialog(dialogId) {
+    this.dialog.open(dialogId);
+  }
+
+  /**
+   * hide overlay dialog
+   */
+  closeDialog() {
+    this.dialog.close();
+  }
+
+  /**
+   * import one or more Piskel animation files from local disk
+   * @param {*} evt 
+   */
   importPiskel(evt) {
     var files = evt.target.files; // FileList object
-    // Loop through the FileList and render image files as thumbnails.
-    for (var i = 0, f; f = files[i]; i++) {
 
-      var reader = new FileReader();
+    // for each selected file
+    for (let i = 0, f; f = files[i]; i++) {
+      const reader = new FileReader();
 
-      // Closure to capture the file information.
-      reader.onload = ((theFile) => {
-        return (e) => {
-          this.readPiskelFile(theFile, e);          
+      // onload, read file and covert
+      reader.onload = ((fileInfo) => {
+        return (fileData) => {
+          this.readPiskelFile(fileInfo, fileData);
         };
       })(f);
 
@@ -768,13 +954,18 @@ class LedMatrixPage {
     }
   }
 
+  /**
+   * read piskel file and turn it into an animation.
+   * @param {*} fileInfo 
+   * @param {*} fileData 
+   */
   readPiskelFile(fileInfo, fileData) {
     const newId = Utils.newGuid();
     const piskelData = JSON.parse(fileData.target.result).piskel;
     const newAnim = {
       "id": newId,
       "name": piskelData.name,
-      "speed": 1000/piskelData.fps,
+      "speed": 1000 / piskelData.fps,
       "frames2": []
     }
     const frameWidth = this.panelWidth;
@@ -783,78 +974,122 @@ class LedMatrixPage {
     const debugArea = document.getElementById("offscreenCanvas");
     const newCanvas = document.createElement("canvas");
     // for(let layerId in piskelData.layers) {
-      const currLayer = JSON.parse(piskelData.layers[0]);
-      const frameCount = currLayer.frameCount;
-      const canvasWidth = frameWidth*frameCount;
-      const canvasHeight = frameHeight;
-      const tempImg = new Image();
-      const pallette = [];
-      const newFrameData = [];
-      tempImg.onload = (() => {
-        newCanvas.width = canvasWidth;
-        newCanvas.height = canvasHeight;
-        debugArea.appendChild(newCanvas);
-        const canvasContext = newCanvas.getContext("2d");
-        canvasContext.drawImage(tempImg, 0, 0, canvasWidth, canvasHeight);
+    const currLayer = JSON.parse(piskelData.layers[0]);
+    const frameCount = currLayer.frameCount;
+    const canvasWidth = frameWidth * frameCount;
+    const canvasHeight = frameHeight;
+    const tempImg = new Image();
+    const pallette = [];
+    const newFrameData = [];
+    tempImg.onload = (() => {
+      newCanvas.width = canvasWidth;
+      newCanvas.height = canvasHeight;
+      debugArea.appendChild(newCanvas);
+      const canvasContext = newCanvas.getContext("2d");
+      canvasContext.drawImage(tempImg, 0, 0, canvasWidth, canvasHeight);
 
-        const totalPixels = canvasWidth * canvasHeight;
-        let frame = 0
-        let row = -1;
-        let rowIndex = 0;
-        let newFrames = [];
-        let newFramesByIndex = [];
-        for(let i=0; i<totalPixels; i++) {
-          if(i%frameWidth===0) {
-            frame++;
-          }
-          if(i%canvasWidth==0) {
-            row++;
-            frame = 0;
-            rowIndex = 0;
-          }
-          let x = rowIndex;
-          let y = row;
-          let pixelData = canvasContext.getImageData(x,y,1,1).data;
-          // console.info([pixelData[0],pixelData[1],pixelData[2]]);
-          if(!newFrames[frame]) {
-            newFrames[frame] = [];
-          }
-          if(!newFramesByIndex[frame]) {
-            newFramesByIndex[frame] = [];
-          }
-          const currColorStr = `[${pixelData[0]},${pixelData[1]},${pixelData[2]}],`;
-          const currColorStr2 = [pixelData[0],pixelData[1],pixelData[2]].toString();
-          if(pallette.indexOf(currColorStr2) === -1) {
-            pallette.push(currColorStr2);
-          }
-          const colorIndex = pallette.indexOf(currColorStr2);
-          newFramesByIndex[frame].push(colorIndex);
-          rowIndex++;
-          // console.info(x, y, frame, row);
+      const totalPixels = canvasWidth * canvasHeight;
+      let frame = 0
+      let row = -1;
+      let rowIndex = 0;
+      let newFrames = [];
+      let newFramesByIndex = [];
+      for (let i = 0; i < totalPixels; i++) {
+        if (i % frameWidth === 0) {
+          frame++;
         }
-        for(let frame in newFrames) {
-          newFramesByIndex[frame] = JSON.stringify(newFramesByIndex[frame]);
-        }        
-        // newAnim.frames = newFrames;
-        newAnim.frames2 = newFramesByIndex;
-        newAnim.pallette = JSON.stringify(pallette);
+        if (i % canvasWidth == 0) {
+          row++;
+          frame = 0;
+          rowIndex = 0;
+        }
+        let x = rowIndex;
+        let y = row;
+        let pixelData = canvasContext.getImageData(x, y, 1, 1).data;
 
-        this.animationsList[newId] = newAnim;
-        this.updateAnimationList();
-        // this.selectAnimation(newId)
+        if (!newFrames[frame]) {
+          newFrames[frame] = [];
+        }
+        if (!newFramesByIndex[frame]) {
+          newFramesByIndex[frame] = [];
+        }
+        const currColorStr = `[${pixelData[0]},${pixelData[1]},${pixelData[2]}],`;
+        const currColorStr2 = [pixelData[0], pixelData[1], pixelData[2]].toString();
+        if (pallette.indexOf(currColorStr2) === -1) {
+          pallette.push(currColorStr2);
+        }
+        const colorIndex = pallette.indexOf(currColorStr2);
+        newFramesByIndex[frame].push(colorIndex);
+        rowIndex++;
+        // console.info(x, y, frame, row);
+      }
+      for (let frame in newFrames) {
+        newFramesByIndex[frame] = JSON.stringify(newFramesByIndex[frame]);
+      }
+      // newAnim.frames = newFrames;
+      newAnim.frames2 = newFramesByIndex;
+      newAnim.pallette = JSON.stringify(pallette);
 
-        // console.info(newFrames);
-      })
-      tempImg.src = currLayer.chunks[0].base64PNG;
-      // debugArea.appendChild(tempImg);
-      
-    // }
-    // console.info(newAnim, piskelData);
+      this.animationsList[newId] = newAnim;
+      this.updateAnimationList();
+    })
+    tempImg.src = currLayer.chunks[0].base64PNG;
   }
-
 
 }
 
+
+/**
+ * Helper class to manage the overlay dialog
+ */
+class Dialog {
+
+  bgDiv = null;
+  contentDiv = null;
+  titleDiv = null;
+
+
+  constructor(bgId, contentId, titleId) {
+    this.bgDiv = document.getElementById(bgId);
+    this.contentDiv = document.getElementById(contentId);
+    this.titleDiv = document.getElementById(titleId);
+    this.bgDiv.style.opacity = 0;
+    this.bgDiv.style.display = "none";
+  }
+
+  open(dialogId) {
+    this.bgDiv.style.display = "block";
+    this.bgDiv.style.opacity = 1;
+    switch (dialogId) {
+      case "load":
+        this.titleDiv.innerText = "Load Animation";
+        break;
+    }
+    for (let i = 0; i < this.contentDiv.children.length; i++) {
+      const currChild = this.contentDiv.children[i];
+      if (currChild.id === dialogId) {
+        currChild.style.display = "block";
+      } else {
+        currChild.style.display = "none";
+      }
+    }
+
+  }
+
+  close() {
+    this.bgDiv.style.opacity = 0;
+    setTimeout(() => {
+      this.bgDiv.style.display = "none";
+    }, 100);
+
+
+  }
+
+}
+
+/**
+ * random helpful utilities used on the page
+ */
 Utils = {
   newGuid: () => {
     return 'xxxxxxxx'.replace(/[xy]/g, function (c) {
