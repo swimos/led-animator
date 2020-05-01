@@ -15,6 +15,15 @@ import swim.uri.Uri;
  */
 public class ApplicationPlane extends AbstractPlane {
 
+  /*
+    see ../resources/server.recon for web agent definitions
+  */
+
+  /**
+   * main application loop
+   * @param args
+   * @throws InterruptedException
+   */
   public static void main(String[] args) throws InterruptedException {
 
     final Kernel kernel = ServerLoader.loadServer();

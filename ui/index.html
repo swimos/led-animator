@@ -102,7 +102,7 @@
 						<span class="material-icons" onclick="page.selectFrame(page.selectedFrame+1)" title="Next Frame">
 							skip_next
 						</span>
-						<span class="material-icons" onclick="page.selectFrame(page.animationsList[page.selectedAnimation].frames2.length-1)" title="Last Frame">
+						<span class="material-icons" onclick="page.selectFrame(page.animationsList[page.selectedAnimation].frames.length-1)" title="Last Frame">
 							fast_forward
 						</span>
 						&nbsp;
@@ -138,10 +138,11 @@
 
 							<!-- rgb color picker row -->
 							<div class="colorRow">
-								<div class="activeColors">
+								<div class="activeColors" onclick="page.toggleFgColorActive()">
 									<div id="backgroundColorChip"></div>
 									<div id="foregroundColorChip"></div>
 								</div>
+								
 								<div class="colorSelectors">
 									R:<input type="number" maxlength="3" size="2" id="redInput" onchange="page.updateSelectedColor()" min="0" max="255">
 										<input type="range" id="redInputRange" min="0" max="255" value="255" onchange="page.updateColorFromSlider()">
@@ -155,9 +156,12 @@
 							</div>
 
 							<!-- tool buttons -->
-							<input type="button" value="All Black" onclick="page.clearLedPixels()">
-							<input type="button" value="All White" onclick="page.clearLedPixels('255,255,255')">
-							<input type="button" value="All Selected" onclick="page.clearLedPixels('selected')">
+							<h6>Clear frame to:</h6>
+							<div class="palletteTools">
+								<input type="button" value="All Black" onclick="page.clearLedPixels()">
+								<input type="button" value="All White" onclick="page.clearLedPixels('255,255,255')">
+								<input type="button" value="All Selected" onclick="page.clearLedPixels('selected')">
+							</div>
 	
 						</div>
 					</div>
@@ -166,7 +170,7 @@
 				<!-- Selected Panel State and panel list section -->
 				<div class="cellPanel" style="margin-top: 10px;">
 					<h3><span id="panelNameDiv">Selected Panel</span> State</h3>
-					<div class="cellGrid4">
+					<div class="cellGrid4" style="height: 98px;">
 						<div>
 							<h6>Active Animation</h6>
 							<div id="panelAnimName"></div>

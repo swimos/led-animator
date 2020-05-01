@@ -87,8 +87,8 @@ class Main {
         this.links["currentFrame"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('currentFrame')
             .didSet((newValue) => {
                 this.currentFrame = newValue.numberValue(0);
-                if(this.activeAnimation && this.activeAnimation.frames2) {
-                    this.ledPixelIndexes = JSON.parse(this.activeAnimation.frames2[this.currentFrame]);
+                if(this.activeAnimation && this.activeAnimation.frames) {
+                    this.ledPixelIndexes = JSON.parse(this.activeAnimation.frames[this.currentFrame]);
                     this.pixelsDirty = true;
                 }
     

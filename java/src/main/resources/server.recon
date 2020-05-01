@@ -1,7 +1,6 @@
 ledpanel: @fabric {
   @plane(class: "swim.ledpanel.ApplicationPlane")
 
-
   @node {
     pattern: "/animationService"
     @agent(class: "swim.ledpanel.agents.AnimationService")

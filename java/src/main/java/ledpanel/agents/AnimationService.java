@@ -19,12 +19,22 @@ public class AnimationService extends AbstractAgent {
 
     private String animationDir = "../animations";
 
+    /**
+     * Map Lane to store all the saved animations
+     */
     @SwimLane("animationsList")
     MapLane<String, Value> animationsList = this.<String, Value>mapLane();
   
+    /**
+     * Map Lane to store each of the LED panels the app is managing
+     */
     @SwimLane("panels")
     MapLane<String, Value> panels = this.<String, Value>mapLane();
 
+    /**
+     * Command Lane to add a new LED panel. 
+     * Called by LedPanelState when a new panel agent is created
+     */
     @SwimLane("addPanel")
     CommandLane<Value> addPanelCommand = this.<Value>commandLane().onCommand(panel -> {
       String panelName = panel.get("id").stringValue("none");
@@ -33,6 +43,10 @@ public class AnimationService extends AbstractAgent {
       }  
     });
 
+    /**
+     * Command Lane to save new or existing animation data to the animationList lane and to disk as JSON.
+     * Called by Web UI when clicking the Save button.
+     */
     @SwimLane("saveAnimation")
     CommandLane<Value> saveAnimationCommand = this.<Value>commandLane().onCommand(anim -> {
       String animName = anim.get("id").stringValue("none");
@@ -43,18 +57,27 @@ public class AnimationService extends AbstractAgent {
       }
   
     });
+
+    // not used yet
+    // @SwimLane("removeAnimation")
+    // CommandLane<String> removeAnimationCommand = this.<String>commandLane().onCommand(animName -> {
+    //     animationsList.remove(animName);
   
-    @SwimLane("removeAnimation")
-    CommandLane<String> removeAnimationCommand = this.<String>commandLane().onCommand(animName -> {
-        animationsList.remove(animName);
+    // });
   
-    });
-  
+    /**
+     * When AnimationService web agent starts, load all saved animations from disk
+     * and populate the animationsList lane.
+     */
     @Override
     public void didStart() {
       this.loadAnimations();
     }
   
+    /**
+     * Utility method which loads all saved animation JSON files from disk
+     * Called once on startup.
+     */
     private void loadAnimations() {
       final File folder = new File(this.animationDir);
       File[] listOfFiles = folder.listFiles();
@@ -90,6 +113,11 @@ public class AnimationService extends AbstractAgent {
   
     }
   
+    /**
+     * utility method used to save animation data to disk as a JSON file
+     * @param animId - id of the animation
+     * @param animData - animation data as a string.
+     */
     public void saveAnimation(String animId, String animData) {
       String fileName = animId + ".json";  
       String absolutePath = this.animationDir + File.separator + fileName;

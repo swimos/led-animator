@@ -81,6 +81,12 @@ class LedMatrixPage {
         }
         this.updateNewPanelList();
       })
+      .didSync(() => {
+        // if(this.panelList.length == 0) {
+        //   this.panelHeight = this.panelWidth = 32;
+        //   document.getElementById("mainPanelList").innerText = "No LED Panels to manage"
+        // }
+      })
 
     // create dialog manager to use later
     this.dialog = new Dialog("overlayBg", "overlayContent", "overlayTitle");
@@ -248,7 +254,7 @@ class LedMatrixPage {
     // get selected animation data from animation list
     const animData = this.animationsList[this.selectedAnimation];
     // get frames data for animation
-    const framesList = animData.frames2;
+    const framesList = animData.frames;
     // set led pixel data for selected frame
     this.ledPixels = JSON.parse(framesList[this.selectedFrame]);
 
@@ -339,7 +345,7 @@ class LedMatrixPage {
         // update pixel color in led pixel array for current frame
         this.ledPixels[index] = palletteIndex;
         // update frame data in animation
-        this.animationsList[this.selectedAnimation].frames2[this.selectedFrame] = `[${this.ledPixels.toString()}]`;
+        this.animationsList[this.selectedAnimation].frames[this.selectedFrame] = `[${this.ledPixels.toString()}]`;
 
         // if sync enabled, update panel with changes
         if (this.ledCommand === "sync") {
@@ -358,7 +364,7 @@ class LedMatrixPage {
    */
   showLedPixels() {
     const animData = this.animationsList[this.selectedAnimation];
-    const framesList = animData.frames2;
+    const framesList = animData.frames;
     this.ledPixels = JSON.parse(framesList[this.selectedFrame]);
 
     swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setLedPixelIndexes', this.ledPixels.toString());
@@ -427,7 +433,7 @@ class LedMatrixPage {
       return palletteIndex
     }).toString();
 
-    this.animationsList[this.selectedAnimation].frames2[this.selectedFrame] = `[${this.ledPixels}]`;
+    this.animationsList[this.selectedAnimation].frames[this.selectedFrame] = `[${this.ledPixels}]`;
 
     // if sync enabled, update panel with changes
     if (this.ledCommand === "sync") {
@@ -441,7 +447,7 @@ class LedMatrixPage {
    */
   drawFramesListElements() {
     const animData = this.animationsList[this.selectedAnimation];
-    const framesList = animData.frames2;
+    const framesList = animData.frames;
 
     for (let i = 0; i < framesList.length; i++) {
 
@@ -472,6 +478,12 @@ class LedMatrixPage {
 
     }
 
+    while(this.framesDiv.children.length > framesList.length) {
+      delete this.frameDivCache[this.framesDiv.children.length-1];
+      this.framesDiv.removeChild(this.framesDiv.children[this.framesDiv.children.length-1]);
+    }
+
+
   }
 
   /**
@@ -482,8 +494,8 @@ class LedMatrixPage {
     if (frameIndex < 0) {
       frameIndex = 0;
     }
-    if (frameIndex >= this.animationsList[this.selectedAnimation].frames2.length) {
-      frameIndex = this.animationsList[this.selectedAnimation].frames2.length - 1;
+    if (frameIndex >= this.animationsList[this.selectedAnimation].frames.length) {
+      frameIndex = this.animationsList[this.selectedAnimation].frames.length - 1;
     }
     this.selectedFrame = frameIndex;
     if (this.syncPreview) {
@@ -495,15 +507,14 @@ class LedMatrixPage {
   }
 
   /**
-   * TODO: fix this 
-   * should delete selected frame from current animation
+   * delete selected frame from current animation
    */
   deleteFrame() {
-    if (this.selectedFrame != 0) {
-      const animData = this.animationsList[this.selectedAnimation];
-      const framesList = animData.frames2;
-      const newFrameList = framesList.slice(0, (this.selectedFrame - 1)).concat(framesList.slice(this.selectedFrame, framesList.length));
-      this.animationsList[this.selectedAnimation].frames2 = newFrameList
+    const animData = this.animationsList[this.selectedAnimation];
+    const framesList = animData.frames;
+    if (this.selectedFrame != 0 || (this.selectedFrame == 0 && framesList.length > 1)) {
+      const newFrameList = framesList.slice(0, (this.selectedFrame)).concat(framesList.slice(this.selectedFrame+1, framesList.length));
+      this.animationsList[this.selectedAnimation].frames = newFrameList
       this.selectFrame(this.selectedFrame - 1);
       this.drawFramesListElements();
     }
@@ -517,8 +528,8 @@ class LedMatrixPage {
     let newFramePixels = newArr.map(function (x, i) {
       return "0"
     }).toString();
-    this.animationsList[this.selectedAnimation].frames2.push(`[${newFramePixels}]`);
-    this.selectFrame(this.animationsList[this.selectedAnimation].frames2.length - 1);
+    this.animationsList[this.selectedAnimation].frames.push(`[${newFramePixels}]`);
+    this.selectFrame(this.animationsList[this.selectedAnimation].frames.length - 1);
     this.drawFramesListElements();
 
   }
@@ -527,9 +538,9 @@ class LedMatrixPage {
    * duplicate current frame. This will append the duplicated frame to the end of the animation
    */
   duplicateFrame() {
-    const newFrame = this.animationsList[this.selectedAnimation].frames2[this.selectedFrame].slice()
-    this.animationsList[this.selectedAnimation].frames2.push(newFrame);
-    this.selectFrame(this.animationsList[this.selectedAnimation].frames2.length - 1);
+    const newFrame = this.animationsList[this.selectedAnimation].frames[this.selectedFrame].slice()
+    this.animationsList[this.selectedAnimation].frames.push(newFrame);
+    this.selectFrame(this.animationsList[this.selectedAnimation].frames.length - 1);
     this.drawFramesListElements();
 
   }
@@ -547,8 +558,11 @@ class LedMatrixPage {
     document.getElementById("animSpeed").value = Math.round(1000 / this.animationsList[this.selectedAnimation].speed);
     this.selectFrame(0);
     for (let tempDiv of this.frameDivCache) {
-      this.framesDiv.removeChild(tempDiv);
-      delete this.frameDivCache[tempDiv];
+      if(tempDiv) {
+        this.framesDiv.removeChild(tempDiv);
+        delete this.frameDivCache[tempDiv];
+  
+      }
     }
     this.frameDivCache = [];
     this.drawFramesListElements();
@@ -619,7 +633,7 @@ class LedMatrixPage {
     playButton.className = "material-icons on"
     
     let nextFrame = this.selectedFrame + 1;
-    let totalFrames = this.animationsList[this.selectedAnimation].frames2.length;
+    let totalFrames = this.animationsList[this.selectedAnimation].frames.length;
     if (nextFrame >= totalFrames) {
       nextFrame = 0;
     }
@@ -645,7 +659,7 @@ class LedMatrixPage {
    * called by button in ui to toggle preview animation state
    */
   toggleAnimationPreview() {
-    if (this.animationsList[this.selectedAnimation].frames2.length <= 1) {
+    if (this.animationsList[this.selectedAnimation].frames.length <= 1) {
       return false;
     }
     if (this.animationTimer === null) {
@@ -684,6 +698,12 @@ class LedMatrixPage {
       document.getElementById('blueInputRange').value = Math.round(this.backgroundColor.b);
 
     }
+  }
+
+  toggleFgColorActive() {
+    this.isFgColorActive = !this.isFgColorActive;
+    document.getElementById("backgroundColorChip").style.zIndex = this.isFgColorActive ? 0 : 1;
+    this.selectColor(this.isFgColorActive ? this.foregroundColor : this.backgroundColor);
   }
 
   /**
@@ -856,7 +876,7 @@ class LedMatrixPage {
     const newFrames = [newArr.map(function (x, i) {
       return "[0,0,0]"
     }).toString()];
-    const newFrames2 = [newArr.map(function (x, i) {
+    const newframes = [newArr.map(function (x, i) {
       return "0"
     }).toString()];
 
@@ -864,7 +884,8 @@ class LedMatrixPage {
       id: newAnimId,
       name: "New Animation",
       speed: 66,
-      frames2: [`[${newFrames2}]`],
+      loop: true,
+      frames: [`[${newframes}]`],
       pallette: '["0,0,0"]'
     }
     this.animationsList[newAnimId] = newAnimData;
@@ -966,7 +987,8 @@ class LedMatrixPage {
       "id": newId,
       "name": piskelData.name,
       "speed": 1000 / piskelData.fps,
-      "frames2": []
+      "loop": true,
+      "frames": [],
     }
     const frameWidth = this.panelWidth;
     const frameHeight = this.panelHeight;
@@ -1027,7 +1049,7 @@ class LedMatrixPage {
         newFramesByIndex[frame] = JSON.stringify(newFramesByIndex[frame]);
       }
       // newAnim.frames = newFrames;
-      newAnim.frames2 = newFramesByIndex;
+      newAnim.frames = newFramesByIndex;
       newAnim.pallette = JSON.stringify(pallette);
 
       this.animationsList[newId] = newAnim;

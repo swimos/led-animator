@@ -434,6 +434,16 @@ canvas {
   background-color: black;
 }
 
+.palletteTools {
+  display: flex;
+  flex-direction: row;
+}
+
+.palletteTools input {
+  flex-grow: 1;
+  font-size: 18px;
+}
+
 .panelRow {
   display: grid;
   grid-template-columns: 33% 33% 33%;
@@ -464,8 +474,14 @@ canvas {
   background-color: rgba(155,75,75,0.5) !important;
 }
 
+#animationList {
+  width: 270px;
+}
+
 #mainPanelList {
   font-size: 16px;
+  height: 100px;
+  overflow: auto;
 }
 
 .animationControls {
