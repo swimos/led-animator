@@ -130,6 +130,9 @@ class LedMatrixPage {
     // event listern for import piskel button in import dialog
     document.getElementById('piskelImportButton').addEventListener('change', this.importPiskel.bind(this), false)
 
+    // start key event listener for keyboard shortcuts
+    this.keyPressHandler();
+
     // start render loop
     window.requestAnimationFrame(() => {
       this.render();
@@ -313,6 +316,19 @@ class LedMatrixPage {
 
   }
 
+  selectTool(toolName) {
+    this.activeTool = toolName;
+    const toolButtons = document.getElementById("brushTools").children;
+
+    for(let i=0; i<toolButtons.length; i++) {
+      const currButton = toolButtons[i];
+      currButton.className = "material-icons";
+      if(currButton.id.indexOf(this.activeTool) >= 0) {
+        currButton.className += " on";
+      }
+    }
+  }
+
   /**
    * 
    * @param {mouseEvent} evt 
@@ -324,6 +340,63 @@ class LedMatrixPage {
     const currPixelColor = pallette[this.ledPixels[index]];
     // switch/case is for adding more tools later such as a color picker
     switch (this.activeTool) {
+      case "dropper":
+        if (evt.buttons === 1) {
+          const colorArr = currPixelColor.split(",");
+          this.selectColor(swim.Color.rgb(colorArr[0], colorArr[1], colorArr[2]));
+        }
+        break;
+      case "eraser":
+        // update pixel color in led pixel array for current frame
+        const colorArr = `${this.backgroundColor.r},${this.backgroundColor.g},${this.backgroundColor.b}`;
+        const colorIndex = pallette.indexOf(colorArr);
+        this.ledPixels[index] = colorIndex;
+        // update frame data in animation
+        this.animationsList[this.selectedAnimation].frames[this.selectedFrame] = `[${this.ledPixels.toString()}]`;
+
+        // if sync enabled, update panel with changes
+        if (this.ledCommand === "sync") {
+          this.showLedPixels();
+        }
+
+        break;
+
+      case "fill":
+        if (evt.buttons === 1 || evt.buttons === 2) {
+          let currColorArr = null;
+          // pick what the new color will be based on which mouse button was clicked
+          if (evt.buttons === 1) {
+            currColorArr = `${this.foregroundColor.r},${this.foregroundColor.g},${this.foregroundColor.b}`;
+          } else if (evt.buttons === 2) {
+            currColorArr = `${this.backgroundColor.r},${this.backgroundColor.g},${this.backgroundColor.b}`;
+          }
+          // find color index of new color in active color pallette
+          let palletteIndex = pallette.indexOf(currColorArr);
+          // if color index now found add new color
+          if (palletteIndex < 0) {
+            pallette.push(currColorArr)
+            this.animationsList[this.selectedAnimation].pallette = JSON.stringify(pallette);
+            palletteIndex = pallette.length - 1;
+            this.drawActiveColorPallette();
+          }
+  
+          // update pixel color in led pixel array for current frame          
+          const fillColorIndex = pallette.indexOf(currColorArr);
+
+          // update frame with an area fill using 'fillColorIndex' and starting from where the canvas was clicked
+          this.fillFromPixel(index, fillColorIndex);
+
+          // update the frames in the selected animation with the updated frame
+          this.animationsList[this.selectedAnimation].frames[this.selectedFrame] = `[${this.ledPixels.toString()}]`;
+
+          // if sync enabled, update panel with changes
+          if (this.ledCommand === "sync") {
+            this.showLedPixels();
+          }
+      
+        }
+        break;
+  
       case "brush":
       default:
         let currColorArr = null;
@@ -357,6 +430,67 @@ class LedMatrixPage {
 
     }
   }
+
+  /**
+   * fill bucket tool. will fill a target area starting from pixel that was clicked.
+   * this will call itself recursively in order to fill an area.
+   * @param {*} pixelIndex - index of clicked pixel
+   * @param {*} colorIndex - color to fill area to
+   */
+  fillFromPixel(pixelIndex, colorIndex) {
+    // console.info('fill', pixelIndex, colorIndex);
+    //set current pixel
+    if(this.ledPixels[pixelIndex] === colorIndex) {
+      return;
+    }
+    // set some color values
+    const previousColorIndex = this.ledPixels[pixelIndex];
+    this.ledPixels[pixelIndex] = colorIndex;
+
+    // find neighbor pixels
+    const leftPixel = this.ledPixels[pixelIndex-1];
+    const rightPixel = this.ledPixels[pixelIndex+1];
+    const topPixel = this.ledPixels[pixelIndex-this.panelWidth];
+    const bottomPixel = this.ledPixels[pixelIndex+this.panelWidth];
+
+    // find edge pixels to limit fill to
+    const minHorizontalIndex = Math.floor(pixelIndex / this.panelWidth) * this.panelWidth;
+    const maxHorizontalIndex = Math.ceil(pixelIndex/ this.panelWidth) * this.panelWidth;
+    const minVerticalIndex = pixelIndex - minHorizontalIndex;
+    const maxVerticalIndex = (this.panelWidth * this.panelHeight) - (this.panelWidth - (pixelIndex - Math.floor(pixelIndex / this.panelWidth) * this.panelWidth)-1);
+
+    // fill to left from current pixel
+    if(pixelIndex-1 >= 0 && (pixelIndex-1 >= minHorizontalIndex)) {
+      if(leftPixel === previousColorIndex) {
+        this.fillFromPixel(pixelIndex-1, colorIndex);
+      }  
+    }
+
+    // fill to right
+    if(pixelIndex+1 < this.ledPixels.length && (pixelIndex+1 < maxHorizontalIndex)) {
+      if(rightPixel === previousColorIndex) {
+        this.fillFromPixel(pixelIndex+1, colorIndex);
+      }  
+    }    
+
+    // fill up from current pixel
+    if(pixelIndex-this.panelWidth >= 0 && (pixelIndex-this.panelWidth >= minVerticalIndex)) {
+      if(topPixel === previousColorIndex) {
+        // this.ledPixels[pixelIndex-this.panelWidth] = colorIndex;
+        this.fillFromPixel(pixelIndex-this.panelWidth, colorIndex);
+      }
+    }
+
+    // fill down from current pixel
+    if(pixelIndex+this.panelWidth < this.ledPixels.length && (pixelIndex+this.panelWidth < maxVerticalIndex)) {
+      if(bottomPixel === previousColorIndex) {
+        // this.ledPixels[pixelIndex+this.panelWidth] = colorIndex;
+        this.fillFromPixel(pixelIndex+this.panelWidth, colorIndex);
+      }
+    }
+
+  }
+
 
   /**
    * update what is shown on LED panel. Used when sync enabled.
@@ -951,6 +1085,122 @@ class LedMatrixPage {
   closeDialog() {
     this.dialog.close();
   }
+
+
+  /**
+   * start keypress listener to handle keyboard shortcuts
+   */
+  keyPressHandler() {
+    document.onkeydown = (key) => {
+      // console.info(key.code)
+      const ctrlDown = key.ctrlKey;
+      switch (key.code) {
+        case "KeyB":
+          if(key.target.id == "") {
+            this.selectTool('brush');
+            key.preventDefault();
+            key.stopPropagation();
+            
+          }
+          break;
+
+        case "KeyE":
+          if(key.target.id == "") {
+            this.selectTool('eraser');
+            key.preventDefault();
+            key.stopPropagation();
+            
+          }
+          break;
+
+        case "KeyI":
+          if(key.target.id == "") {
+            this.selectTool('dropper');
+            key.preventDefault();
+            key.stopPropagation();
+            
+          }
+          break;
+
+        case "KeyG":
+        case "KeyF":
+          if(key.target.id == "") {
+            this.selectTool('fill');
+            key.preventDefault();
+            key.stopPropagation();
+            
+          }
+          break;
+
+        case "KeyP":
+        case "Space":
+          if(key.target.id == "") {
+            this.toggleAnimationPreview();
+            key.preventDefault();
+            key.stopPropagation();
+            
+          }
+          break;
+  
+        case "Comma":
+          if(key.target.id == "") {
+            this.selectFrame(this.selectedFrame-1)
+            key.preventDefault();
+            key.stopPropagation();
+            
+          }
+          break;
+
+        case "Period":
+          if(key.target.id == "") {
+            this.selectFrame(this.selectedFrame+1)
+            key.preventDefault();
+            key.stopPropagation();
+            
+          }
+          break;
+
+        case "Enter":
+          if(key.target.id != "") {
+            key.target.blur();
+            if(key.target.id === "animationList") {
+              this.loadAnimation();
+            }
+          }
+          break;
+            
+        case "KeyS":
+          if (ctrlDown) {
+            this.saveAnimation();
+            key.preventDefault();
+            key.stopPropagation();
+
+          }
+          break;
+        case "KeyL":
+          if (ctrlDown) {
+            this.showDialog('loadFileDialog');
+            document.getElementById("animationList").focus();
+            key.preventDefault();
+            key.stopPropagation();
+
+          }
+          break;          
+
+        // case "KeyN":
+        //     if (ctrlDown) {
+        //       key.preventDefault();
+        //       key.stopPropagation();
+        //       this.newAnimation();
+        //       document.getElementById("animationList").focus();
+  
+        //     }
+        //     break;          
+  
+  
+      }
+    }
+  }  
 
   /**
    * import one or more Piskel animation files from local disk

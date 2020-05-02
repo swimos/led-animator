@@ -65,8 +65,17 @@
 					</div>
 
 					<!-- animation canvas -->
-					<div id="pixelGrid">
-						<canvas id="pixelCanvas" width="32" height="32"></canvas>
+					<div class="gridRow">
+						<div class="brushTools" id="brushTools">
+							<span class="material-icons on" id="brushButton" onclick="page.selectTool('brush')">edit</span>
+							<span class="material-icons" id="eraserButton" onclick="page.selectTool('eraser')">remove_circle_outline</span>
+							<span class="material-icons" id="dropperButton" onclick="page.selectTool('dropper')">colorize</span>
+							<span class="material-icons" id="fillButton" onclick="page.selectTool('fill')">format_paint</span>
+						</div>
+
+						<div id="pixelGrid">
+							<canvas id="pixelCanvas" width="32" height="32"></canvas>
+						</div>
 					</div>
 
 					<!-- animation frames section -->

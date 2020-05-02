@@ -5,6 +5,7 @@
     "height": 32,
     "swimAddress": "127.0.0.1",
     "swimPort": "9001",
+    "panelType": "rpi-rgb-led-matrix",
     "chained": 1,
     "parallel": 1,
     "brightness": 100,

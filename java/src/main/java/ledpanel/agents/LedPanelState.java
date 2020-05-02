@@ -147,17 +147,19 @@ public class LedPanelState extends AbstractAgent {
   // move currentFrame forward, node clients will read and render the change
   private void nextFrame() {
     this.isPlaying = false;
+    // System.out.println(this.ledCommand.get());
+    // System.out.println(this.currentFrame.get());
     if(this.ledCommand.get() == "play") {
       Integer currFrameNumber = this.currentFrame.get();
     
       Integer newFrameNumber = currFrameNumber + 1;
       if(newFrameNumber >= this.totalFrames.get()) {
         newFrameNumber = 0;
-        Value loopValue = this.activeAnimation.get().get("loop");
-        if(loopValue != Value.absent() && loopValue.booleanValue() == false) {
-          System.out.println("stop");
-          this.ledCommand.set("stop");
-        }
+        // Value loopValue = this.activeAnimation.get().get("loop");
+        // if(loopValue != Value.absent() && loopValue.booleanValue() == false) {
+        //   System.out.println("stop");
+        //   this.ledCommand.set("stop");
+        // }
       }
       this.currentFrame.set(newFrameNumber);
   

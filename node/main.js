@@ -7,7 +7,7 @@ const commandLineArgs = process.argv;
 
 class Main {
     constructor() {
-        this.showDebug = true;
+        this.showDebug = false;
         this.mainLoopInterval = 1;
         this.links = [];
         this.args = {};
@@ -224,21 +224,21 @@ class Main {
     }    
     
     mainLoop() {
-        if(this.lastFrame != this.currentFrame || this.ledCommand === "sync") {
+        // if(this.lastFrame != this.currentFrame || this.ledCommand === "sync") {
 
             // if(this.pixelsDirty) {
                 this.drawCurrentPixelIndexes();
                 this.pixelsDirty = false;
             // }
             // if(this.matrixDirty) {
-                if(this.matrix && this.panelType === "rpi-rgb-led-matrix") {
+                if(this.matrix && this.config.panelType === "rpi-rgb-led-matrix") {
                     this.matrix.update();
                 }
                 
                 this.matrixDirty = false;
             // }
             this.lastFrame = this.currentFrame;
-        }
+        // }
         setTimeout(this.mainLoop.bind(this), 3);
     }
 

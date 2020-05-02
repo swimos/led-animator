@@ -48,7 +48,7 @@ h6 {
 }
 
 .main {
-  width: 950px;
+  width: 970px;
   margin: 10px auto 50px auto;
 }
 
@@ -200,9 +200,14 @@ canvas {
 
 .gridPanel {
   display: grid;
-  grid-template-columns: 450px auto;
+  grid-template-columns: 470px 490px;
   min-height: 300px;
   grid-gap: 10px;
+}
+
+.gridRow {
+  display: grid;
+  grid-template-columns: 30px 416px;  
 }
 
 .cellPanel {
@@ -480,8 +485,14 @@ canvas {
 
 #mainPanelList {
   font-size: 16px;
-  height: 100px;
+  height: 104px;
   overflow: auto;
+}
+
+.brushTools {
+  display: flex;
+  flex-direction: column;
+  padding-top: 15px;
 }
 
 .animationControls {
@@ -490,7 +501,7 @@ canvas {
   grid-template-columns: 10% 10% 10% 10% 10% 10% 10% 10% 10% 10%;
 }
 
-.animationControls span, .panelControls span{
+.animationControls span, .panelControls span, .brushTools span {
   background-color: rgba(255,255,255,0.3);
   transition: all 150ms linear;
   font-size: 1rem;
@@ -514,6 +525,16 @@ canvas {
   height: 35px;
 }
 
+.brushTools span {
+  background-color: rgba(255,255,255,0.1);
+  border: solid 1px rgba(255,255,255,0.1);
+  border-radius: 2px;
+  height: 25px;
+  font-size: 16px;
+  line-height: 25px;
+  margin-bottom: 5px;
+}
+
 #panelAnimName {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -522,6 +543,7 @@ canvas {
 }
 
 .animationControls span:hover, .animationControls span:active,
+.brushTools span:hover, .brushTools span:active,
 .panelControls span:hover, .panelControls span:active{
   color: #00a6ed;
   border: solid 1px #00a6ed;
@@ -529,6 +551,7 @@ canvas {
 }
 
 .animationControls span:active,
+.brushTools span:active,
 .panelControls span:active{
   color: rgb(151,0,172);
   border: solid 1px rgb(151,0,172);
