@@ -64,6 +64,12 @@ public class LedPanelState extends AbstractAgent {
   @SwimLane("frameRate")
   ValueLane<Integer> frameRate = this.<Integer>valueLane();
 
+  @SwimLane("frameWidth")
+  ValueLane<Integer> frameWidth = this.<Integer>valueLane();
+
+  @SwimLane("frameHeight")
+  ValueLane<Integer> frameHeight = this.<Integer>valueLane();
+
   // total number of frames in active animation
   @SwimLane("totalFrames")
   ValueLane<Integer> totalFrames = this.<Integer>valueLane();
@@ -118,6 +124,15 @@ public class LedPanelState extends AbstractAgent {
     this.colorPallette.set(t);
   });
 
+  // command to update animation frame size
+  @SwimLane("setFrameSize")
+  CommandLane<Value> setFrameSizeCommand = this.<Value>commandLane().onCommand(size -> {
+    System.out.println(size);
+    frameWidth.set(size.get("width").intValue());
+    frameHeight.set(size.get("height").intValue());
+
+  });
+
   // command to change the active animation data
   @SwimLane("setActiveAnimation")
   CommandLane<Value> setActiveAnimation = this.<Value>commandLane().onCommand(anim -> {
@@ -130,6 +145,9 @@ public class LedPanelState extends AbstractAgent {
     colorPallette.set(anim.get("pallette"));
     totalFrames.set(frames.get().length());
     currentFrame.set(0);
+
+    frameWidth.set(anim.get("frameWidth").intValue());
+    frameHeight.set(anim.get("frameHeight").intValue());
 
     this.ledCommand.set("play");
     

@@ -11,6 +11,7 @@ class LedMatrixPage {
   dialog = null;
   links = {};
   panelLinks = [];
+  panelCommandLink = [];
   ledPixels = [];
   selectedFrame = 0;
   currentPanelId = null;
@@ -79,13 +80,13 @@ class LedMatrixPage {
         if (this.currentPanelId === null) {
           this.selectPanel(key.stringValue());
         }
-        this.updateNewPanelList();
+        this.updatePanelList();
       })
       .didSync(() => {
-        // if(this.panelList.length == 0) {
-        //   this.panelHeight = this.panelWidth = 32;
-        //   document.getElementById("mainPanelList").innerText = "No LED Panels to manage"
-        // }
+        if(this.panelList.length == 0) {
+          this.panelHeight = this.panelWidth = 32;
+          // document.getElementById("mainPanelList").innerText = "No LED Panels to manage"
+        }
       })
 
     // create dialog manager to use later
@@ -127,11 +128,15 @@ class LedMatrixPage {
       e.preventDefault();
     }, false);
 
-    // event listern for import piskel button in import dialog
+    // event listener for import piskel button in import dialog
     document.getElementById('piskelImportButton').addEventListener('change', this.importPiskel.bind(this), false)
 
     // start key event listener for keyboard shortcuts
     this.keyPressHandler();
+
+    document.body.onresize = () => {
+      this.handleResize();
+    };
 
     // start render loop
     window.requestAnimationFrame(() => {
@@ -165,21 +170,24 @@ class LedMatrixPage {
       return false;
     }
     // close panel info swim links for previously selected panel 
-    for (let linkLKey in this.panelLinks) {
-      this.panelLinks[linkLKey].close();
-      delete this.panelLinks[linkLKey];
+    for (let linkKey in this.panelLinks) {
+      if(this.panelLinks[linkKey] !== null) {
+        this.panelLinks[linkKey].close();
+        this.panelLinks[linkKey] = null;
+  
+      }
     }
 
     // set new panel id
     this.currentPanelId = panelId;
 
     // setup the panel info swim links we need to keep track of the selected panel state
-    this.panelLinks["activeAnimId"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('activeAnimationId')
+    this.panelLinks[`activeAnimId-${this.currentPanelId}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${panelId}`).downlinkValue().laneUri('activeAnimationId')
       .didSet((newValue) => {
         this.activeAnimation = newValue;
       });
 
-    this.panelLinks["activeAnimation"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('activeAnimation')
+    this.panelLinks[`activeAnimation-${this.currentPanelId}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('activeAnimation')
       .didSet((newValue) => {
         if (newValue.isDefined()) {
           // console.info(newValue.get("name").stringValue());
@@ -189,7 +197,7 @@ class LedMatrixPage {
         }
       });
 
-    this.panelLinks["ledCommand"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('ledCommand')
+    this.panelLinks[`ledCommand-${this.currentPanelId}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('ledCommand')
       .didSet((newValue) => {
         this.ledCommand = newValue.stringValue("stop");
         document.getElementById("panelCommand").innerHTML = this.ledCommand;
@@ -217,36 +225,49 @@ class LedMatrixPage {
         }
       });
 
-    this.panelLinks["panelInfo"] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('info')
+    this.panelLinks[`panelInfo-${this.currentPanelId}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${this.currentPanelId}`).downlinkValue().laneUri('info')
       .didSet((newValue) => {
         if (newValue.isDefined()) {
           this.panelInfo = newValue.toObject();
           this.panelName = this.panelInfo.name;
-          this.panelWidth = this.panelInfo.width;
+          this.panelWidth = this.panelInfo.width * (this.panelInfo.parallel || 1);
           this.panelHeight = this.panelInfo.height;
           this.pixelCanvas.width = this.panelWidth;
           this.pixelCanvas.height = this.panelHeight;
           document.getElementById('panelSize').innerHTML = `W: ${this.panelWidth} H: ${this.panelHeight}`;
           document.getElementById('panelNameDiv').innerHTML = this.panelName;
-          // this.drawPixels();
+          if(this.panelWidth > this.panelHeight) {
+            document.getElementsByTagName("main")[0].style.width = "1408px";
+            document.getElementById("layoutMain").className = "gridPanelWide";
+            document.getElementById("pixelGrid").style.width = "calc(13px * 64)";
+          } else {
+            document.getElementsByTagName("main")[0].style.width = "970px";
+            document.getElementById("layoutMain").className = "gridPanel";
+            document.getElementById("pixelGrid").style.width = "calc(13px * 32)";
+          }
+          this.handleResize();
+          
         }
 
       });
 
 
     // open the swim panel info links for newly selected panel
-    for (let linkLKey in this.panelLinks) {
-      this.panelLinks[linkLKey].open();
+    for (let linkKey in this.panelLinks) {
+      if(this.panelLinks[linkKey] !== null) {
+        this.panelLinks[linkKey].open();
+      }
+      
     }
 
     // refresh panel list state
-    this.updateNewPanelList();
+    this.updatePanelList();
 
   }
 
   /**
    * draw current frame to pixel grid canvas
-   * this is called on render loop and doenst need to be called outside of that
+   * this is called on render loop and does not need to be called outside of that
    */
   drawPixels() {
     // make sure we have what we need to work with
@@ -270,7 +291,7 @@ class LedMatrixPage {
     const pallette = JSON.parse(this.animationsList[this.selectedAnimation].pallette);
 
     // create image data on pixel canvas context
-    const frameImageData = this.pixelCanvasCxt.createImageData(this.panelWidth, this.panelHeight);
+    const frameImageData = this.pixelCanvasCxt.createImageData(animData.frameWidth, animData.frameHeight);
 
     // draw pixels to frameImageData
     let dataIndex = 0;
@@ -289,6 +310,11 @@ class LedMatrixPage {
 
   }
 
+  handleResize() {
+    this.gridOffsetX = this.pixelGrid.offsetLeft;
+    this.gridOffsetY = this.pixelGrid.offsetTop;
+
+  }
   /**
    * Event handler to catch and handle mouse move and mouse down events on pixel canvas
    * @param {event} evt 
@@ -515,6 +541,7 @@ class LedMatrixPage {
       }
       this.syncPreview = true;
       swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setLedCommand', 'sync');
+      this.pushFrameSizeToPanel();
       this.pushPalletteToPanel();
       this.showLedPixels();
 
@@ -716,10 +743,19 @@ class LedMatrixPage {
     swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setColorPallette', this.animationsList[this.selectedAnimation].pallette);
   }
 
+  pushFrameSizeToPanel() {
+    const animData = this.animationsList[this.selectedAnimation];
+    const size = {
+      width: animData.frameWidth,
+      height: animData.frameHeight
+    }
+    swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setFrameSize', size);
+  }
+
   /**
    * util to push current animation preview to panel
    */
-  pushAnimationToPanel() {
+  pushAnimationToPanel() {    
     swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setActiveAnimation', this.animationsList[this.selectedAnimation]);
   }
 
@@ -785,7 +821,7 @@ class LedMatrixPage {
     this.animationTimer = null;
     const playButton = document.getElementById("playButton");
     playButton.innerText = "play_arrow";
-    playButton.className = "material-icons"
+    playButton.className = "material-icons";
 
   }
 
@@ -930,6 +966,7 @@ class LedMatrixPage {
     }
     if (this.ledCommand === "sync") {
       this.pushPalletteToPanel();
+      this.pushFrameSizeToPanel();
     }
 
   }
@@ -957,7 +994,7 @@ class LedMatrixPage {
    * Update the list of panels sent from the animationService
    * this will render the panel listing the panel section of the page
    */
-  updateNewPanelList() {
+  updatePanelList() {
     const mainDiv = document.getElementById("mainPanelList");
 
     mainDiv.innerHTML = "";
@@ -978,13 +1015,17 @@ class LedMatrixPage {
       newRow.appendChild(nameDiv);
 
       const sizeDiv = document.createElement("div");
-      sizeDiv.innerHTML = `${currPanel.width}px x ${currPanel.height}px`;
+      const width = currPanel.width * (currPanel.parallel || 1);
+      sizeDiv.innerHTML = `${width}px x ${currPanel.height}px`;
       newRow.appendChild(sizeDiv);
 
       const commandDiv = document.createElement("div");
       newRow.appendChild(commandDiv);
 
-      this.panelLinks[`animCommand-${panelKey}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${panelKey}`).downlinkValue().laneUri('ledCommand')
+      if(this.panelCommandLink[`animCommand-${panelKey}`]) {
+        this.panelCommandLink[`animCommand-${panelKey}`].close();
+      }
+      this.panelCommandLink[`animCommand-${panelKey}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${panelKey}`).downlinkValue().laneUri('ledCommand')
         .didSet((newValue) => {
           if (newValue.isDefined()) {
             commandDiv.innerText = `Command: ${newValue.toString()}`;
@@ -995,8 +1036,8 @@ class LedMatrixPage {
       mainDiv.appendChild(newRow);
 
     }
-    for (let panelKey in this.panelLinks) {
-      this.panelLinks[panelKey].open();
+    for (let panelKey in this.panelCommandLink) {
+      this.panelCommandLink[panelKey].open();
     }
 
   }
@@ -1019,6 +1060,8 @@ class LedMatrixPage {
       name: "New Animation",
       speed: 66,
       loop: true,
+      frameWidth: (this.panelWidth != 0) ? this.panelWidth : 32,
+      frameHeight: (this.panelHeight != 0) ? this.panelHeight : 32,
       frames: [`[${newframes}]`],
       pallette: '["0,0,0"]'
     }
@@ -1233,16 +1276,18 @@ class LedMatrixPage {
   readPiskelFile(fileInfo, fileData) {
     const newId = Utils.newGuid();
     const piskelData = JSON.parse(fileData.target.result).piskel;
+    const frameWidth = piskelData.width;
+    const frameHeight = piskelData.height;
+
     const newAnim = {
       "id": newId,
       "name": piskelData.name,
       "speed": 1000 / piskelData.fps,
       "loop": true,
+      "frameWidth": frameWidth,
+      "frameHeight": frameHeight,
       "frames": [],
     }
-    const frameWidth = this.panelWidth;
-    const frameHeight = this.panelHeight;
-    const framePixelCount = frameWidth * frameHeight;
     const debugArea = document.getElementById("offscreenCanvas");
     const newCanvas = document.createElement("canvas");
     // for(let layerId in piskelData.layers) {
@@ -1252,7 +1297,7 @@ class LedMatrixPage {
     const canvasHeight = frameHeight;
     const tempImg = new Image();
     const pallette = [];
-    const newFrameData = [];
+
     tempImg.onload = (() => {
       newCanvas.width = canvasWidth;
       newCanvas.height = canvasHeight;
@@ -1285,12 +1330,12 @@ class LedMatrixPage {
         if (!newFramesByIndex[frame]) {
           newFramesByIndex[frame] = [];
         }
-        const currColorStr = `[${pixelData[0]},${pixelData[1]},${pixelData[2]}],`;
-        const currColorStr2 = [pixelData[0], pixelData[1], pixelData[2]].toString();
-        if (pallette.indexOf(currColorStr2) === -1) {
-          pallette.push(currColorStr2);
+
+        const currColorStr = [pixelData[0], pixelData[1], pixelData[2]].toString();
+        if (pallette.indexOf(currColorStr) === -1) {
+          pallette.push(currColorStr);
         }
-        const colorIndex = pallette.indexOf(currColorStr2);
+        const colorIndex = pallette.indexOf(currColorStr);
         newFramesByIndex[frame].push(colorIndex);
         rowIndex++;
         // console.info(x, y, frame, row);

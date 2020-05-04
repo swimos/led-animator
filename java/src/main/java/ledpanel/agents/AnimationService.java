@@ -122,7 +122,7 @@ public class AnimationService extends AbstractAgent {
       String fileName = animId + ".json";  
       String absolutePath = this.animationDir + File.separator + fileName;
   
-      System.out.println("Save:" + absolutePath);
+      // System.out.println("Save:" + absolutePath);
       try(FileOutputStream fileOutputStream = new FileOutputStream(absolutePath)) {  
         fileOutputStream.write(animData.getBytes());
       } catch (FileNotFoundException e) {

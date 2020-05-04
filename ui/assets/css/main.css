@@ -205,6 +205,13 @@ canvas {
   grid-gap: 10px;
 }
 
+.gridPanelWide {
+  display: grid;
+  grid-template-columns: 890px 490px;
+  min-height: 300px;
+  grid-gap: 10px;
+}
+
 .gridRow {
   display: grid;
   grid-template-columns: 30px 416px;  
@@ -372,6 +379,8 @@ canvas {
   flex-direction: row;
   flex-wrap: wrap;
   flex-grow: 1;
+  overflow: auto;
+  max-height: 253px;  
 }
 
 #activePalletteContainer {
