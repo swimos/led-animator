@@ -16,6 +16,7 @@
 	<link rel="stylesheet" href="assets/css/main.css" type="text/css">
 
 	<!-- javascript -->
+	<script src="assets/js/lib/libgif.js"></script>
 	<script src="assets/js/lib/swim-system.js"></script>
 	<script src="assets/js/lib/default.js"></script>
 	<script src="assets/js/index.js"></script>
@@ -50,7 +51,7 @@
 						<input type="button" class="menuButton" value="New" onclick="page.newAnimation()">
 						<input type="button" class="menuButton" value="Load" onclick="page.showDialog('loadFileDialog')">
 						<input type="button" class="menuButton" value="Save" onclick="page.saveAnimation()">
-						<input type="button" class="menuButton" value="Import" onclick="page.showDialog('importPiskel')">
+						<input type="button" class="menuButton" value="Import" onclick="page.showDialog('importAnimation')">
 	
 					</div>				
 	
@@ -227,7 +228,7 @@
 		<div id="overlayBg">
 			<div id="overlayFg">
 				<!-- overlay title -->
-				<h4 id="overlayTitle">title</h4>
+				<h4 id="overlayTitle">&nbsp;</h4>
 				<div id="overlayContent">
 					
 					<!-- load file dialog -->
@@ -241,15 +242,16 @@
 						</div>
 					</div>
 
-					<!-- import piskel dialog -->
-					<div id="importPiskel">
-						<h5>Import Piskel</h5>
-						
-							<input type="file" id="piskelImportButton">
+					<!-- import Gif dialog -->
+					<div id="importAnimation">
+						<h5>Import Animation</h5>
+						<div style="font-size: 10px;">
+							Resize images before import. This will not scale images.
+						</div>
 						<div class="dialogButtonRow">
-							
 							<input type="button" value="Cancel" class="cancelButton" onclick="page.closeDialog()">
-							<input type="button" value="Load" class="okButton" onclick="page.loadAnimation()">
+							<input type="file" id="gifImportButton" accept=".gif,.piskel" style="width: 130px;">
+							<!-- <input type="button" value="Load" class="okButton" onclick="page.importGif()"> -->
 	
 						</div>
 					</div>

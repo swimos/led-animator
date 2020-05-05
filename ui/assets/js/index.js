@@ -9,6 +9,7 @@ class LedMatrixPage {
 
   swimUrl = null;
   dialog = null;
+  importUtil = null;
   links = {};
   panelLinks = [];
   panelCommandLink = [];
@@ -83,7 +84,7 @@ class LedMatrixPage {
         this.updatePanelList();
       })
       .didSync(() => {
-        if(this.panelList.length == 0) {
+        if (this.panelList.length == 0) {
           this.panelHeight = this.panelWidth = 32;
           // document.getElementById("mainPanelList").innerText = "No LED Panels to manage"
         }
@@ -91,6 +92,7 @@ class LedMatrixPage {
 
     // create dialog manager to use later
     this.dialog = new Dialog("overlayBg", "overlayContent", "overlayTitle");
+    this.importUtil = new ImportUtil();
 
     // setup some default values
     this.pixelGrid = document.getElementById("pixelGrid");
@@ -128,8 +130,8 @@ class LedMatrixPage {
       e.preventDefault();
     }, false);
 
-    // event listener for import piskel button in import dialog
-    document.getElementById('piskelImportButton').addEventListener('change', this.importPiskel.bind(this), false)
+    // event listener for import button in import dialog
+    document.getElementById('gifImportButton').addEventListener('change', this.importAnimation.bind(this), false)
 
     // start key event listener for keyboard shortcuts
     this.keyPressHandler();
@@ -171,10 +173,10 @@ class LedMatrixPage {
     }
     // close panel info swim links for previously selected panel 
     for (let linkKey in this.panelLinks) {
-      if(this.panelLinks[linkKey] !== null) {
+      if (this.panelLinks[linkKey] !== null) {
         this.panelLinks[linkKey].close();
         this.panelLinks[linkKey] = null;
-  
+
       }
     }
 
@@ -236,7 +238,7 @@ class LedMatrixPage {
           this.pixelCanvas.height = this.panelHeight;
           document.getElementById('panelSize').innerHTML = `W: ${this.panelWidth} H: ${this.panelHeight}`;
           document.getElementById('panelNameDiv').innerHTML = this.panelName;
-          if(this.panelWidth > this.panelHeight) {
+          if (this.panelWidth > this.panelHeight) {
             document.getElementsByTagName("main")[0].style.width = "1408px";
             document.getElementById("layoutMain").className = "gridPanelWide";
             document.getElementById("pixelGrid").style.width = "calc(13px * 64)";
@@ -246,7 +248,7 @@ class LedMatrixPage {
             document.getElementById("pixelGrid").style.width = "calc(13px * 32)";
           }
           this.handleResize();
-          
+
         }
 
       });
@@ -254,10 +256,10 @@ class LedMatrixPage {
 
     // open the swim panel info links for newly selected panel
     for (let linkKey in this.panelLinks) {
-      if(this.panelLinks[linkKey] !== null) {
+      if (this.panelLinks[linkKey] !== null) {
         this.panelLinks[linkKey].open();
       }
-      
+
     }
 
     // refresh panel list state
@@ -346,10 +348,10 @@ class LedMatrixPage {
     this.activeTool = toolName;
     const toolButtons = document.getElementById("brushTools").children;
 
-    for(let i=0; i<toolButtons.length; i++) {
+    for (let i = 0; i < toolButtons.length; i++) {
       const currButton = toolButtons[i];
       currButton.className = "material-icons";
-      if(currButton.id.indexOf(this.activeTool) >= 0) {
+      if (currButton.id.indexOf(this.activeTool) >= 0) {
         currButton.className += " on";
       }
     }
@@ -405,7 +407,7 @@ class LedMatrixPage {
             palletteIndex = pallette.length - 1;
             this.drawActiveColorPallette();
           }
-  
+
           // update pixel color in led pixel array for current frame          
           const fillColorIndex = pallette.indexOf(currColorArr);
 
@@ -419,10 +421,10 @@ class LedMatrixPage {
           if (this.ledCommand === "sync") {
             this.showLedPixels();
           }
-      
+
         }
         break;
-  
+
       case "brush":
       default:
         let currColorArr = null;
@@ -466,7 +468,7 @@ class LedMatrixPage {
   fillFromPixel(pixelIndex, colorIndex) {
     // console.info('fill', pixelIndex, colorIndex);
     //set current pixel
-    if(this.ledPixels[pixelIndex] === colorIndex) {
+    if (this.ledPixels[pixelIndex] === colorIndex) {
       return;
     }
     // set some color values
@@ -474,44 +476,44 @@ class LedMatrixPage {
     this.ledPixels[pixelIndex] = colorIndex;
 
     // find neighbor pixels
-    const leftPixel = this.ledPixels[pixelIndex-1];
-    const rightPixel = this.ledPixels[pixelIndex+1];
-    const topPixel = this.ledPixels[pixelIndex-this.panelWidth];
-    const bottomPixel = this.ledPixels[pixelIndex+this.panelWidth];
+    const leftPixel = this.ledPixels[pixelIndex - 1];
+    const rightPixel = this.ledPixels[pixelIndex + 1];
+    const topPixel = this.ledPixels[pixelIndex - this.panelWidth];
+    const bottomPixel = this.ledPixels[pixelIndex + this.panelWidth];
 
     // find edge pixels to limit fill to
     const minHorizontalIndex = Math.floor(pixelIndex / this.panelWidth) * this.panelWidth;
-    const maxHorizontalIndex = Math.ceil(pixelIndex/ this.panelWidth) * this.panelWidth;
+    const maxHorizontalIndex = Math.ceil(pixelIndex / this.panelWidth) * this.panelWidth;
     const minVerticalIndex = pixelIndex - minHorizontalIndex;
-    const maxVerticalIndex = (this.panelWidth * this.panelHeight) - (this.panelWidth - (pixelIndex - Math.floor(pixelIndex / this.panelWidth) * this.panelWidth)-1);
+    const maxVerticalIndex = (this.panelWidth * this.panelHeight) - (this.panelWidth - (pixelIndex - Math.floor(pixelIndex / this.panelWidth) * this.panelWidth) - 1);
 
     // fill to left from current pixel
-    if(pixelIndex-1 >= 0 && (pixelIndex-1 >= minHorizontalIndex)) {
-      if(leftPixel === previousColorIndex) {
-        this.fillFromPixel(pixelIndex-1, colorIndex);
-      }  
+    if (pixelIndex - 1 >= 0 && (pixelIndex - 1 >= minHorizontalIndex)) {
+      if (leftPixel === previousColorIndex) {
+        this.fillFromPixel(pixelIndex - 1, colorIndex);
+      }
     }
 
     // fill to right
-    if(pixelIndex+1 < this.ledPixels.length && (pixelIndex+1 < maxHorizontalIndex)) {
-      if(rightPixel === previousColorIndex) {
-        this.fillFromPixel(pixelIndex+1, colorIndex);
-      }  
-    }    
+    if (pixelIndex + 1 < this.ledPixels.length && (pixelIndex + 1 < maxHorizontalIndex)) {
+      if (rightPixel === previousColorIndex) {
+        this.fillFromPixel(pixelIndex + 1, colorIndex);
+      }
+    }
 
     // fill up from current pixel
-    if(pixelIndex-this.panelWidth >= 0 && (pixelIndex-this.panelWidth >= minVerticalIndex)) {
-      if(topPixel === previousColorIndex) {
+    if (pixelIndex - this.panelWidth >= 0 && (pixelIndex - this.panelWidth >= minVerticalIndex)) {
+      if (topPixel === previousColorIndex) {
         // this.ledPixels[pixelIndex-this.panelWidth] = colorIndex;
-        this.fillFromPixel(pixelIndex-this.panelWidth, colorIndex);
+        this.fillFromPixel(pixelIndex - this.panelWidth, colorIndex);
       }
     }
 
     // fill down from current pixel
-    if(pixelIndex+this.panelWidth < this.ledPixels.length && (pixelIndex+this.panelWidth < maxVerticalIndex)) {
-      if(bottomPixel === previousColorIndex) {
+    if (pixelIndex + this.panelWidth < this.ledPixels.length && (pixelIndex + this.panelWidth < maxVerticalIndex)) {
+      if (bottomPixel === previousColorIndex) {
         // this.ledPixels[pixelIndex+this.panelWidth] = colorIndex;
-        this.fillFromPixel(pixelIndex+this.panelWidth, colorIndex);
+        this.fillFromPixel(pixelIndex + this.panelWidth, colorIndex);
       }
     }
 
@@ -639,9 +641,9 @@ class LedMatrixPage {
 
     }
 
-    while(this.framesDiv.children.length > framesList.length) {
-      delete this.frameDivCache[this.framesDiv.children.length-1];
-      this.framesDiv.removeChild(this.framesDiv.children[this.framesDiv.children.length-1]);
+    while (this.framesDiv.children.length > framesList.length) {
+      delete this.frameDivCache[this.framesDiv.children.length - 1];
+      this.framesDiv.removeChild(this.framesDiv.children[this.framesDiv.children.length - 1]);
     }
 
 
@@ -674,7 +676,7 @@ class LedMatrixPage {
     const animData = this.animationsList[this.selectedAnimation];
     const framesList = animData.frames;
     if (this.selectedFrame != 0 || (this.selectedFrame == 0 && framesList.length > 1)) {
-      const newFrameList = framesList.slice(0, (this.selectedFrame)).concat(framesList.slice(this.selectedFrame+1, framesList.length));
+      const newFrameList = framesList.slice(0, (this.selectedFrame)).concat(framesList.slice(this.selectedFrame + 1, framesList.length));
       this.animationsList[this.selectedAnimation].frames = newFrameList
       this.selectFrame(this.selectedFrame - 1);
       this.drawFramesListElements();
@@ -719,10 +721,10 @@ class LedMatrixPage {
     document.getElementById("animSpeed").value = Math.round(1000 / this.animationsList[this.selectedAnimation].speed);
     this.selectFrame(0);
     for (let tempDiv of this.frameDivCache) {
-      if(tempDiv) {
+      if (tempDiv) {
         this.framesDiv.removeChild(tempDiv);
         delete this.frameDivCache[tempDiv];
-  
+
       }
     }
     this.frameDivCache = [];
@@ -755,7 +757,7 @@ class LedMatrixPage {
   /**
    * util to push current animation preview to panel
    */
-  pushAnimationToPanel() {    
+  pushAnimationToPanel() {
     swim.command(this.swimUrl, `/ledPanel/${this.currentPanelId}`, 'setActiveAnimation', this.animationsList[this.selectedAnimation]);
   }
 
@@ -801,7 +803,7 @@ class LedMatrixPage {
     const playButton = document.getElementById("playButton");
     playButton.innerText = "stop";
     playButton.className = "material-icons on"
-    
+
     let nextFrame = this.selectedFrame + 1;
     let totalFrames = this.animationsList[this.selectedAnimation].frames.length;
     if (nextFrame >= totalFrames) {
@@ -1022,7 +1024,7 @@ class LedMatrixPage {
       const commandDiv = document.createElement("div");
       newRow.appendChild(commandDiv);
 
-      if(this.panelCommandLink[`animCommand-${panelKey}`]) {
+      if (this.panelCommandLink[`animCommand-${panelKey}`]) {
         this.panelCommandLink[`animCommand-${panelKey}`].close();
       }
       this.panelCommandLink[`animCommand-${panelKey}`] = swim.nodeRef(this.swimUrl, `/ledPanel/${panelKey}`).downlinkValue().laneUri('ledCommand')
@@ -1139,79 +1141,79 @@ class LedMatrixPage {
       const ctrlDown = key.ctrlKey;
       switch (key.code) {
         case "KeyB":
-          if(key.target.id == "") {
+          if (key.target.id == "") {
             this.selectTool('brush');
             key.preventDefault();
             key.stopPropagation();
-            
+
           }
           break;
 
         case "KeyE":
-          if(key.target.id == "") {
+          if (key.target.id == "") {
             this.selectTool('eraser');
             key.preventDefault();
             key.stopPropagation();
-            
+
           }
           break;
 
         case "KeyI":
-          if(key.target.id == "") {
+          if (key.target.id == "") {
             this.selectTool('dropper');
             key.preventDefault();
             key.stopPropagation();
-            
+
           }
           break;
 
         case "KeyG":
         case "KeyF":
-          if(key.target.id == "") {
+          if (key.target.id == "") {
             this.selectTool('fill');
             key.preventDefault();
             key.stopPropagation();
-            
+
           }
           break;
 
         case "KeyP":
         case "Space":
-          if(key.target.id == "") {
+          if (key.target.id == "") {
             this.toggleAnimationPreview();
             key.preventDefault();
             key.stopPropagation();
-            
+
           }
           break;
-  
+
         case "Comma":
-          if(key.target.id == "") {
-            this.selectFrame(this.selectedFrame-1)
+          if (key.target.id == "") {
+            this.selectFrame(this.selectedFrame - 1)
             key.preventDefault();
             key.stopPropagation();
-            
+
           }
           break;
 
         case "Period":
-          if(key.target.id == "") {
-            this.selectFrame(this.selectedFrame+1)
+          if (key.target.id == "") {
+            this.selectFrame(this.selectedFrame + 1)
             key.preventDefault();
             key.stopPropagation();
-            
+
           }
           break;
 
         case "Enter":
-          if(key.target.id != "") {
+          if (key.target.id != "") {
             key.target.blur();
-            if(key.target.id === "animationList") {
+            if (key.target.id === "animationList") {
               this.loadAnimation();
             }
           }
           break;
-            
+
         case "KeyS":
           if (ctrlDown) {
             this.saveAnimation();
@@ -1228,52 +1230,178 @@ class LedMatrixPage {
             key.stopPropagation();
 
           }
-          break;          
+          break;
 
-        // case "KeyN":
-        //     if (ctrlDown) {
-        //       key.preventDefault();
-        //       key.stopPropagation();
-        //       this.newAnimation();
-        //       document.getElementById("animationList").focus();
-  
-        //     }
-        //     break;          
-  
-  
+          // case "KeyN":
+          //     if (ctrlDown) {
+          //       key.preventDefault();
+          //       key.stopPropagation();
+          //       this.newAnimation();
+          //       document.getElementById("animationList").focus();
+
+          //     }
+          //     break;          
+
+
       }
-    }
-  }  
-
-  /**
-   * import one or more Piskel animation files from local disk
-   * @param {*} evt 
-   */
-  importPiskel(evt) {
-    var files = evt.target.files; // FileList object
-
-    // for each selected file
-    for (let i = 0, f; f = files[i]; i++) {
-      const reader = new FileReader();
-
-      // onload, read file and covert
-      reader.onload = ((fileInfo) => {
-        return (fileData) => {
-          this.readPiskelFile(fileInfo, fileData);
-        };
-      })(f);
-
-      // Read in the image file as a data URL.
-      reader.readAsText(f);
     }
   }
 
   /**
-   * read piskel file and turn it into an animation.
-   * @param {*} fileInfo 
-   * @param {*} fileData 
+   * Import animation button handler
+   * @param {*} evt 
    */
-  readPiskelFile(fileInfo, fileData) {
+  importAnimation(evt) {
+    // const localFilePath = document.getElementById("gifImportButton").value;
+    this.dialog.setTitle("Import Animation");
+    const fileBlob = evt.target.files[0];
+    const onImport = (newAnim) => {
+      console.info('[index]', newAnim);
+      this.animationsList[newAnim.id] = newAnim;
+      this.updateAnimationList();
+      this.dialog.close();
+      this.selectAnimation(newAnim.id);
+
+    }
+    const onUpdate = (updateStr) => {
+      this.dialog.setTitle(updateStr);
+    }
+
+    this.importUtil.readFile(fileBlob, onImport, onUpdate);
+    
+  }
+}
+
+/**
+ * utility class to handle importing animations from gifs and piskels
+ */
+class ImportUtil {
+
+  constructor() {
+
+  }
+
+  readFile(fileBlob, onImport, onUpdate) {
+
+    const fileName = fileBlob.name;
+    const fileNameArr = fileName.split(".")
+    const fileType = fileNameArr[fileNameArr.length-1];
+    const reader = new FileReader();
+
+    if(onUpdate) {
+      onUpdate(`Running .${fileType} import`);
+    }
+
+    reader.onload = ((fileBlob) => {
+      return (fileData) => {
+        switch(fileType) {
+          case "gif":
+            this.importGif(fileName, fileData, onImport, onUpdate);
+            break;
+          case "piskel":
+            this.importPiskel(fileName, fileData, onImport, onUpdate);
+            break;
+  
+        }
+        
+      };
+    })(fileBlob);
+
+    if(fileType === "piskel") {
+      reader.readAsText(fileBlob);
+    } else {
+      reader.readAsDataURL(fileBlob);
+    }
+    // 
+
+  }
+  
+  importGif(fileName, fileData, onImport, onUpdate) {
+
+    const img = new Image();
+    img.src = fileData.target.result;
+    document.getElementById("offscreenCanvas").appendChild(img);
+
+    const newId = Utils.newGuid();
+    const frameWidth = img.width;
+    const frameHeight = img.height;
+    const newAnim = {
+      "id": newId,
+      "name": fileName,
+      "speed": 40,
+      "loop": true,
+      "frameWidth": frameWidth,
+      "frameHeight": frameHeight,
+      "frames": [],
+    }
+    const pallette = [];
+
+    const sgif = window.SuperGif({
+      gif: img
+    }, false, false);
+
+    sgif.load(() => {
+      const canvasContext = sgif.get_canvas().getContext("2d");
+      // foreach frame in gif
+      for(let z=0; z<sgif.get_length(); z++) {
+        sgif.move_to(z);  
+        
+        // console.info(`Read frame #${z}`);
+        if(onUpdate) {
+          onUpdate(`Read frame #${z}`);
+        }
+
+        const newFrame = [];
+        const canvasWidth = img.width;
+        const canvasHeight = img.height;
+        newAnim.frameWidth = canvasWidth;
+        newAnim.frameHeight = canvasHeight;
+        const totalPixels = canvasWidth * canvasHeight;
+        let row = -1;
+        let rowIndex = 0;
+  
+        // foreach pixel in frame
+        for (let i = 0; i < totalPixels; i++) {
+          if (i % canvasWidth == 0) {
+            row++;
+            rowIndex = 0;
+          }
+          let x = rowIndex;
+          let y = row;
+  
+          let pixelData = canvasContext.getImageData(x, y, 1, 1).data;
+
+          const currColorStr = [pixelData[0], pixelData[1], pixelData[2]].toString();
+          if (pallette.indexOf(currColorStr) === -1) {
+            pallette.push(currColorStr);
+          }
+          const colorIndex = pallette.indexOf(currColorStr);
+          newFrame.push(colorIndex);
+          // console.info(x, y, frame, row);
+          rowIndex++;
+        }
+        // newAnim.frames.push(JSON.stringify(newFrame));
+        newAnim.frames.push(newFrame);
+        
+      }
+      if(onUpdate) {
+        onUpdate(`Finalize Import`);
+      }
+
+      for(let frame in newAnim.frames) {
+        newAnim.frames[frame] = JSON.stringify(newAnim.frames[frame]);
+      }
+      newAnim.pallette = JSON.stringify(pallette);
+      if(onImport) {
+        if(onUpdate) {
+          onUpdate(`Import Complete`);
+        }
+        onImport(newAnim);
+      }
+    });
+  }
+
+  importPiskel(fileName, fileData, onImport, onUpdate) {
     const newId = Utils.newGuid();
     const piskelData = JSON.parse(fileData.target.result).piskel;
     const frameWidth = piskelData.width;
@@ -1346,15 +1474,16 @@ class LedMatrixPage {
       // newAnim.frames = newFrames;
       newAnim.frames = newFramesByIndex;
       newAnim.pallette = JSON.stringify(pallette);
+      if(onImport) {
+        onImport(newAnim);
+      }
 
-      this.animationsList[newId] = newAnim;
-      this.updateAnimationList();
+      // this.animationsList[newId] = newAnim;
+      // this.updateAnimationList();
     })
     tempImg.src = currLayer.chunks[0].base64PNG;
-  }
-
+  }  
 }
-
 
 /**
  * Helper class to manage the overlay dialog
@@ -1400,6 +1529,10 @@ class Dialog {
     }, 100);
 
 
+  }
+
+  setTitle(newStr) {
+    this.titleDiv.innerText = newStr;
   }
 
 }
