@@ -1,12 +1,12 @@
 {
-  "name": "LedPanelManager",
-  "version": "3.0.1",
-  "description": "",
+  "name": "LedAnimationManager",
+  "version": "1.0.0",
+  "description": "Web UI to drive one or more LED Matrix Panels using Swim which manages LED Panel state using WebAgents.",
   "main": "main.js",
   "scripts": {
     "start": "node main.js"
   },
-  "author": "",
+  "author": "Scott Clarke",
   "license": "ISC",
   "dependencies": {
     "@swim/client": "^3.10.0",

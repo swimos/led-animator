@@ -1,10 +1,11 @@
-console.info('[main] Loading libraries ...');
-
 const swimClient = require('@swim/client');
-const swim = require('@swim/core')
 
 const commandLineArgs = process.argv;
 
+/**
+ * Main class used to drive an individual LED RGB panel
+ * based on the state stored in a Swim WebAgent for that panel.
+ */
 class Main {
     constructor() {
         this.showDebug = false;
@@ -45,25 +46,16 @@ class Main {
         
     }
 
+    /**
+     * main startup method. Create swim links and do basic setup to run panel.
+     */
     start() {
-        if (this.showDebug) {
-            console.info(`[main] started panel: ${this.config.name}`);
-        }
+        console.info(`[main] starting panel: ${this.config.name}`);
         this.registerPanel();
 
-        // this.links["animList"] = swimClient.nodeRef(this.swimUrl, '/animationService').downlinkMap().laneUri('animationsList')
-        //     .didUpdate((key, value) => {
-        //         this.animationsList[key.stringValue()] = value.toObject();
-        //     })
-        //     .didRemove((key) => {
-        //         delete this.animationsList[key.stringValue()];
-        //     })
-        //     .didSync(() => {
-        //         // we may have reconnected so register panel to be sure.
-        //         this.registerPanel();
-        //     })
-        //     .open();
+        // ** create all the required swim links to the Swim webagent to get the data needed to drive the LED panel
 
+        // ledCommand defines the current state of the LED panel (play, stop, sync), which changes how the panel behaves
         this.links["ledCommand"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('ledCommand')
             .didSet((newValue) => {
                 if(newValue.toString) {
@@ -77,6 +69,7 @@ class Main {
             })
             .open();         
 
+        // this is the array of pixels which get displayed. the value of each pixel its lookup index on the active color pallette.
         // do not open now
         this.links["ledPixelIndexes"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('ledPixelIndexes')
             .didSet((newValue) => {
@@ -86,7 +79,7 @@ class Main {
                 }
             })
 
-
+        // current frame number to be displayed. updated by webagent to produce animations
         this.links["currentFrame"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('currentFrame')
             .didSet((newValue) => {
                 this.currentFrame = newValue.numberValue(0);
@@ -98,6 +91,7 @@ class Main {
             })
             .open();         
 
+        // current animation to be displayed on the LED panel
         this.links["activeAnimation"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('activeAnimation')
             .didSet((newValue) => {
                 if(newValue.toObject) {
@@ -106,6 +100,7 @@ class Main {
             })
             .open();         
 
+        // ID of active animation
         this.links["activeAnimationId"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('activeAnimationId')
             .didSet((newValue) => {
                 if(newValue.stringValue) {
@@ -114,6 +109,7 @@ class Main {
             })
             .open();         
 
+        // width of active animation being displayed. This can vary from active animation and so needs its own listener.
         this.links["frameWidth"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('frameWidth')
             .didSet((newValue) => {
                 if(newValue.isDefined()) {
@@ -122,6 +118,7 @@ class Main {
             })
             .open();         
 
+        // height of active animation being displayed. This can vary from active animation and so needs its own listener.
         this.links["frameHeight"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('frameHeight')
             .didSet((newValue) => {
                 if(newValue.isDefined()) {
@@ -130,6 +127,8 @@ class Main {
             })
             .open();         
 
+        // pallette of all the unqiue colors which make up the active animation. 
+        // This ends up as an array of color values stored as an array of integers for R,G and B
         this.links["ledPallette"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('colorPallette')
             .didSet((newValue) => {
                 if(newValue.stringValue() !== undefined) {
@@ -143,6 +142,8 @@ class Main {
             })
             .open();         
 
+
+        // ** now setup our hardware **
 
         // if we are using the rgb matrix hat, initialize it
         // and set out matrix variable
@@ -169,7 +170,8 @@ class Main {
 
         // kick off main loop
         this.mainLoop();
-        
+     
+        console.info(`[main] Panel Started: ${this.config.name}`);
 
     }
 
@@ -180,32 +182,48 @@ class Main {
         swimClient.command(this.swimUrl, `/ledPanel/${this.panelData.id}`, 'newPanel', this.config);
     }
 
-    
+    /**
+     * Update LED pixels based on data in LedPixelIndexs. 
+     * Managing the pixels happens differently for different hardware.
+     * For Large LEd panels, this updates an offset canvas which gets 
+     * written to the LEDs during the mainLoop update.
+     * The Maxtix creator updates an array of rgb values which get passed 
+     * to the Creator once the array has been updated
+     * On the senseHat this just updates each pixel directly.
+     */
     drawCurrentPixelIndexes() {
         let currX = 0;
         let currY = 0;
+        let everloop = null;
+
+        // if matrix creator, create new empty array for pixel data
         if(this.config.panelType === "matrixCreator") {
-            let everloop = new Array(this.matrix.led.length);
+            everloop = new Array(this.matrix.led.length);
         }
 
-        //update based on swim led pixel state
+        // make sure we have pixel data to work with
         if(this.ledPixelIndexes) {
 
+            // for each pixel in ledPixelIndexes
             for(let i=0; i<this.ledPixelIndexes.length; i++) {
                 const currPixel = this.ledPixelIndexes[i];
                 const pixelColor = this.pallette[currPixel];
 
+                // make sure we have a pixel color and hardware to talk to
                 if(pixelColor && this.matrix) {
+                    // update matrix creator array with pixel RGB value
                     if(this.config.panelType === "matrixCreator") {
                         if(i<this.matrix.led.length) {
                             everloop[i] = `rgb(${pixelColor})`;
                         }
                     } else {
+                        // update sensehat or LED panel with new pixel RGB value
                         this.matrix.setPixel(currX, currY, pixelColor[0], pixelColor[1], pixelColor[2]);
                     }
                     
                 }
     
+                // do some math to keep track of the X & Y position of the current pixel inside the final image.
                 if(i%this.frameWidth===(this.frameWidth-1)) {
                     currY++;
                     currX = 0;
@@ -214,9 +232,13 @@ class Main {
                 }
                 
             }
+
+            // if we are using the matrix creator, update it now.
             if(this.config.panelType === "matrixCreator") {
                 this.matrix.led.set(everloop);
             }    
+
+            // mark dirty flag for mainLoop
             this.matrixDirty = true;
         }
         
@@ -254,6 +276,9 @@ class Main {
         })
     }    
     
+    /**
+     * main app loop. this is where the LED panel will actually get updated
+     */
     mainLoop() {
         if(this.lastFrame != this.currentFrame || this.ledCommand === "sync") {
 
@@ -275,5 +300,6 @@ class Main {
 
 }
 
+// create Main and start everything up.
 const app = new Main();
 app.start();
