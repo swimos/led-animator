@@ -13,7 +13,7 @@ ledpanel: @fabric {
 
 }
 
-@web(port: 9001) {
+@web(port: 9002) {
   space: "ledpanel"
   documentRoot: "../ui/"
   @websocket {

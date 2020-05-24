@@ -65,7 +65,7 @@ The SenseHat comes with a 8x8 LED display on its face. Like the creator, nothing
 
 ## Inside the Swim LED Manager Application
 
-The source code has lot of comments to help you understand how things operate. If you need help or have questions, [do not hestiate to reach out and ask](https://gitter.im/swimos/community). We are happy to help!
+The source code has lot of comments to help you understand how things operate. If you need help or have questions, [do not hesitate to reach out and ask](https://gitter.im/swimos/community). We are happy to help!
 
 ### Server
 

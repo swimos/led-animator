@@ -157,9 +157,11 @@ public class LedPanelState extends AbstractAgent {
   // incoming data is panel configuration info.
   @SwimLane("newPanel")
   CommandLane<Value> newPanelCommand = this.<Value>commandLane().onCommand(panel -> {
+    System.out.println("New Panel");
+    System.out.println(panel);
     panelId.set(panel.get("id").stringValue());
     info.set(panel);
-    command(Uri.parse("warp://127.0.0.1:9001"), Uri.parse("animationService"), Uri.parse("addPanel"), panel); 
+    command(Uri.parse("warp://127.0.0.1:9002"), Uri.parse("animationService"), Uri.parse("addPanel"), panel); 
   });
 
   // move currentFrame forward, node clients will read and render the change
