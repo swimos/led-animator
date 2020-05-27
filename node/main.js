@@ -9,7 +9,7 @@ const commandLineArgs = process.argv;
 class Main {
     constructor() {
         this.showDebug = false;
-        this.mainLoopInterval = 1;
+        this.mainLoopInterval = 30;
         this.links = [];
         this.args = {};
         this.config = {};
@@ -43,7 +43,9 @@ class Main {
         this.frameWidth = this.config.width;
         this.frameHeight = this.config.height;
 
-        
+        this.mainLoopTimeout = null;
+        this.tempPixel = null;
+        this.tempPixelColor = null;
     }
 
     /**
@@ -74,7 +76,7 @@ class Main {
         this.links["ledPixelIndexes"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('ledPixelIndexes')
             .didSet((newValue) => {
                 if(newValue.isDefined()) {
-                    this.ledPixelIndexes = JSON.parse(`[${newValue.toString()}]`);
+                    this.ledPixelIndexes = newValue.toString().split(',');
                     this.pixelsDirty = true;
                 }
             })
@@ -84,7 +86,7 @@ class Main {
             .didSet((newValue) => {
                 this.currentFrame = newValue.numberValue(0);
                 if(this.activeAnimation && this.activeAnimation.frames) {
-                    this.ledPixelIndexes = JSON.parse(this.activeAnimation.frames[this.currentFrame]);
+                    this.ledPixelIndexes = this.activeAnimation.frames[this.currentFrame].replace('[','').replace(']').split(',');
                     this.pixelsDirty = true;
                 }
     
@@ -206,19 +208,19 @@ class Main {
 
             // for each pixel in ledPixelIndexes
             for(let i=0; i<this.ledPixelIndexes.length; i++) {
-                const currPixel = this.ledPixelIndexes[i];
-                const pixelColor = this.pallette[currPixel];
+                this.tempPixel = this.ledPixelIndexes[i];
+                this.tempPixelColor = this.pallette[this.tempPixel];
 
                 // make sure we have a pixel color and hardware to talk to
-                if(pixelColor && this.matrix) {
+                if(this.tempPixelColor && this.matrix) {
                     // update matrix creator array with pixel RGB value
                     if(this.config.panelType === "matrixCreator") {
                         if(i<this.matrix.led.length) {
-                            everloop[i] = `rgb(${pixelColor})`;
+                            everloop[i] = `rgb(${this.tempPixelColor})`;
                         }
                     } else {
                         // update sensehat or LED panel with new pixel RGB value
-                        this.matrix.setPixel(currX, currY, pixelColor[0], pixelColor[1], pixelColor[2]);
+                        this.matrix.setPixel(currX, currY, this.tempPixelColor[0], this.tempPixelColor[1], this.tempPixelColor[2]);
                     }
                     
                 }
@@ -295,7 +297,8 @@ class Main {
             }
             this.lastFrame = this.currentFrame;
         }
-        setTimeout(this.mainLoop.bind(this), 5);
+        clearTimeout(this.mainLoopTimeout);
+        this.mainLoopTimeout = setTimeout(this.mainLoop.bind(this), 5);
     }
 
 }

@@ -3,7 +3,7 @@
     "id": "big",
     "width": 64,
     "height": 64,
-    "swimAddress": "192.168.1.71",
+    "swimAddress": "192.168.1.69",
     "swimPort": "9001",
     "panelType": "rpi-rgb-led-matrix",
     "chained": 1,
