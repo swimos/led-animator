@@ -16,7 +16,7 @@ class Main {
 
         this.ledPixels = null;
         this.ledPixelIndexes = null;
-        this.pallette = null;
+        this.pallette  = [];
         this.pixelsDirty = false;
         this.matrixDirty = false;
         this.ledMessage = "";
@@ -134,12 +134,16 @@ class Main {
         this.links["ledPallette"] = swimClient.nodeRef(this.swimUrl, `/ledPanel/${this.panelData.id}`).downlinkValue().laneUri('colorPallette')
             .didSet((newValue) => {
                 if(newValue.stringValue() !== undefined) {
-                    const rawArray = JSON.parse(newValue.stringValue());
+                    let strValue = newValue.stringValue()
+                    let rawArray = strValue.substr(2, strValue.length-2).split(`","`);
+                    
                     this.pallette = [];
                     for(let i=0; i<rawArray.length; i++) {
-                        const currColor = eval(rawArray[i].split(","));
-                        this.pallette.push([parseInt(currColor[0]),parseInt(currColor[1]),parseInt(currColor[2])]);
+                        // const currColor = rawArray[i].split(",");
+                        let tempColor = rawArray[i].split(",");
+                        this.pallette.push([parseInt(tempColor[0]), parseInt(tempColor[1]), parseInt(tempColor[2])]);
                     }
+                    // console.info(this.pallette[0])
                 }                
             })
             .open();         
@@ -211,6 +215,8 @@ class Main {
                 this.tempPixel = this.ledPixelIndexes[i];
                 this.tempPixelColor = this.pallette[this.tempPixel];
 
+                // console.info(this.tempPixelColor);
+                
                 // make sure we have a pixel color and hardware to talk to
                 if(this.tempPixelColor && this.matrix) {
                     // update matrix creator array with pixel RGB value
