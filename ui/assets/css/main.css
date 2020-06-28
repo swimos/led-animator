@@ -144,9 +144,13 @@ input[type=range]:hover::-webkit-slider-thumb {
 }
 
 canvas {
+  image-rendering: pixelated;
+}
+
+#pixelCanvas {
   width: 100%;
   height: 100%;
-  image-rendering: pixelated;
+  
 }
 
 .statusHeader {

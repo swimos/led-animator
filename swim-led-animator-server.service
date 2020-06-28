@@ -1,0 +1,14 @@
+[Unit]
+Description=Swim LED Animator Server
+After=network.target
+
+[Service]
+ExecStart=/home/pi/led-animator/java/dist/swim-ledpanel-0.1/bin/swim-ledpanel
+WorkingDirectory=/home/pi/led-animator/java/
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target

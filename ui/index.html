@@ -223,7 +223,7 @@
 		</div>
 		
 		<!-- used for importing piskel files -->
-		<div id="offscreenCanvas" style="display: none">
+		<div id="offscreenCanvas" style="display: block">
 
 		</div>
 
@@ -249,7 +249,11 @@
 					<div id="importAnimation">
 						<h5>Import Animation</h5>
 						<div style="font-size: 12px;">
-							Resize images to fit panel before importing.<br>This will not scale images.
+							Enter panel size:
+						</div>
+						<div>
+							W: <input type="text" id="importWidth" value="128" size="2" maxlength="3" style="text-align: center;">
+							H: <input type="text" id="importHeight" value="64" size="2" maxlength="3" style="text-align: center;">
 						</div>
 						<div class="dialogButtonRow">
 							<input type="button" value="Cancel" class="cancelButton" onclick="page.closeDialog()">
